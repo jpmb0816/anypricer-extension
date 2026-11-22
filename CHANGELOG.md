@@ -1,5 +1,9 @@
 # What's new
 
+## 1.0.7 - 2026-11-22
+- Test update: the ⓘ icon at the top of the popup shows who developed it and when this version was released
+- The setup file name now has the version in it (ScriptInjector-Setup-1.0.7.exe)
+
 ## 1.0.6 - 2026-11-22
 - Popup update banner: "Download update" gets the setup (it updates this copy in place), "Apply now" once the new version is downloaded, and "Skip this version" to stay on yours
 - Setup: a new team code replaces the old team settings; leave it empty to keep the current team code

@@ -6,6 +6,7 @@ import { icon } from '../lib/icons.js';
 import { sourceGroup, SOURCE_ORDER, repoStatus, decorate } from '../lib/sources.js';
 import * as control from '../lib/control.js';
 import * as extUpdate from '../lib/ext-update.js';
+import { BUILD } from '../lib/build-info.js';
 
 let tab = null;
 let tabInfo = null;
@@ -241,6 +242,9 @@ async function renderExtUpdate() {
       h('button', { class: 'small primary', onclick: async () => chrome.tabs.create({ url: await extUpdate.setupUrl() }) }, 'Download update'), skip(st.latest)))));
 }
 renderExtUpdate();
+// About (ⓘ): who made it and when this version was released
+{ const about = `Script Injector v${extUpdate.current()} · developed by ${BUILD.author} · released ${BUILD.released}`;
+  $('#btn-about').title = about; $('#btn-about').addEventListener('click', () => toast(about)); }
 $('#btn-ext-check').textContent = 'v' + extUpdate.current() + ' ↻';
 $('#btn-ext-check').addEventListener('click', async (e) => {
   e.preventDefault();

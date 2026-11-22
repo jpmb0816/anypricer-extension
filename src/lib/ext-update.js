@@ -20,7 +20,15 @@ export function newer(a, b) { // a > b
 }
 
 // the latest setup from GitHub Releases: running it updates this copy in place (same folder, team settings kept)
-export async function setupUrl() { return `https://github.com/${(await cfg()).repo}/releases/latest/download/ScriptInjector-Setup.exe`; }
+export async function setupUrl() {
+  const c = await cfg();
+  try { // the setup file name carries the version (ScriptInjector-Setup-1.0.7.exe): take it from the latest release
+    const r = await fetch(`https://api.github.com/repos/${c.repo}/releases/latest`, { cache: 'no-store', headers: c.token ? { Authorization: 'Bearer ' + c.token } : {} });
+    const a = r.ok && ((await r.json()).assets || []).find((x) => /^ScriptInjector-Setup.*\.exe$/i.test(x.name));
+    if (a) return a.browser_download_url;
+  } catch (_) { /* fall back to the release page */ }
+  return `https://github.com/${c.repo}/releases/latest`;
+}
 
 async function cfg() {
   const f = (await teamFile().catch(() => ({}))) || {};
