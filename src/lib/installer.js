@@ -185,6 +185,16 @@ export const isEdited = (s) => !!s.codeHash && store.integrity(s) !== s.codeHash
  * scripts edited locally (otherwise they are only marked "update available").
  * A newer version that needs a script that is not installed gets it from index.json next to the script, if there.
  */
+/** Quick update of one script (popup / dashboard button): returns a short message for a toast */
+export async function updateOne(id) {
+  const r = await checkUpdates({ ids: [id] });
+  const u = (r.updated || [])[0];
+  if (u) return { ok: true, msg: `Updated: ${u.name}${u.from !== '?' ? ` v${u.from} → v${u.to}` : ''}. Reload the page to run it.` };
+  const st = r.state && r.state[id];
+  if (st && st.error) return { ok: false, msg: st.error };
+  if (st && st.edited && st.latest) return { ok: false, msg: `v${st.latest} available, but you edited this script: use Check now in the editor to replace your edits` };
+  return { ok: true, msg: 'Already up to date' };
+}
 export async function checkUpdates({ ids = null, auto = false, overwriteEdits = false } = {}) {
   // Signed managed copy: updates only come through the signed libraries (control check), never straight from a link
   const g = await ghConfig();

@@ -3,6 +3,8 @@ import { setupLock } from '../lib/lock-ui.js';
 import * as store from '../lib/storage.js';
 import { $, h, send, toast, timeAgo, toggle } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
+import * as installer from '../lib/installer.js';
+let UPD_MAP = {}; const UPD = () => UPD_MAP; // update-check state per script (for the quick update buttons)
 import { sourceGroup, SOURCE_ORDER, repoStatus, decorate } from '../lib/sources.js';
 import * as control from '../lib/control.js';
 import * as extUpdate from '../lib/ext-update.js';
@@ -29,6 +31,7 @@ async function openDashboard(q = '') {
 }
 
 async function load() {
+  UPD_MAP = (await chrome.storage.local.get('updates')).updates || {};
   [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   [settings, scripts, repos] = await Promise.all([store.getSettings(), store.getScripts(), repoStatus().catch(() => ({ kinds: {}, pending: [] }))]);
   codeHidden = !!((await control.lockInfo().catch(() => null)) || {}).locked;
@@ -86,6 +89,10 @@ function scriptRow(s, st, injectable) {
           } catch (e) { toast(e.message, 'err'); }
         }
       }, icon('play')),
+      s.sourceUrl ? h('button', { class: 'ghost icon upd-one' + (UPD()[s.id] && UPD()[s.id].latest > s.version ? ' has-upd' : ''), title: UPD()[s.id] && UPD()[s.id].latest > s.version ? `Update to v${UPD()[s.id].latest}` : 'Check this script for an update', onclick: async (e) => {
+        e.stopPropagation(); const b = e.currentTarget; b.disabled = true; b.classList.add('spin');
+        try { const r = await installer.updateOne(s.id); toast(r.msg, r.ok ? 'ok' : 'err'); } catch (err) { toast(err.message, 'err'); }
+        b.disabled = false; b.classList.remove('spin'); } }, icon('refresh')) : null,
       h('button', { class: 'ghost icon', title: codeHidden ? 'Open in the dashboard (code locked: admin key needed)' : 'Edit', onclick: () => openDashboard('edit=' + s.id) }, icon(codeHidden ? 'eye' : 'pencil'))
     ),
     s.runAt === 'manual' ? null : toggle(s.enabled, async (v) => {

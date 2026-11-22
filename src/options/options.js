@@ -157,6 +157,10 @@ function renderList() {
             (() => { const u = state.updates[s.id]; return u && u.latest > s.version ? h('span', { class: 'upd-badge', title: u.edited ? 'Update available. You edited this script, so it was not replaced automatically.' : 'Update available' }, ` ↑ v${u.latest}`) : null; })(),
             (() => { const p = s.enabled ? store.depProblems(s, state.scripts) : []; return p.length ? h('span', { class: 'dep-warn', title: 'This script does not run until its required scripts are on' }, ` · ⚠ needs ${p.map((x) => x.name).join(', ')}`) : s.dependsOn && s.dependsOn.length ? h('span', { class: 'muted', title: 'Required scripts: ' + s.dependsOn.map((id) => (state.scripts.find((x) => x.id === id) || {}).name || id).join(', ') }, ` · needs ${s.dependsOn.length}`) : null; })())
         ),
+        isDraft || !s.sourceUrl ? null : h('button', { class: 'ghost icon upd-one' + (state.updates[s.id] && state.updates[s.id].latest > s.version ? ' has-upd' : ''), title: state.updates[s.id] && state.updates[s.id].latest > s.version ? `Update to v${state.updates[s.id].latest}` : 'Check this script for an update', onclick: async (e) => {
+        e.stopPropagation(); const b = e.currentTarget; b.disabled = true; b.classList.add('spin');
+        try { const r = await installer.updateOne(s.id); toast(r.msg, r.ok ? 'ok' : 'err'); } catch (err) { toast(err.message, 'err'); }
+        b.disabled = false; b.classList.remove('spin'); } }, icon('refresh')),
         isDraft ? null : h('span', { onclick: (e) => e.stopPropagation() }, toggle(s.enabled, async (v) => {
           const r = await store.setEnabledWithDeps(s.id, v);
           if (r.also.length) toast(`${v ? 'Also turned on (required)' : 'Also turned off (they need it)'}: ${r.also.join(', ')}`, 'ok');
