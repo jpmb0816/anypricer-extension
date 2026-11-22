@@ -81,7 +81,7 @@
           <span class="pill" id="f-version" title="Version from the script header (@version). Bump it to publish an update."></span>
           <input type="url" id="f-sourceUrl" placeholder="Update link (https://…/script.js), optional" spellcheck="false" title="Where updates come from. Set automatically when installed from a link or from @downloadURL in the header.">
           <label class="row" title="Check this link for a newer @version and install it"><input type="checkbox" id="f-autoUpdate"> Auto-update</label>
-          <button type="button" class="small" id="btn-check-update">Check now</button>
+          <button type="button" class="small" id="btn-check-update" data-lockfree>Check now</button>
           <span class="muted" id="upd-status"></span>
         </div>
 
@@ -262,9 +262,9 @@
       <label class="setting"><span class="num"><select id="s-updateHours"><option value="1">1 h</option><option value="3">3 h</option><option value="6">6 h</option><option value="12">12 h</option><option value="24">24 h</option></select></span> <div><b>Check every</b><span class="muted">How often to look for updates.</span></div></label>
       <label class="setting"><span class="num"><select id="s-extCheckHours"><option value="1">1 h</option><option value="3">3 h</option><option value="6">6 h</option><option value="12">12 h</option><option value="24">24 h</option><option value="0">Never</option></select></span> <div><b>Check for extension updates every</b><span class="muted">Looks on GitHub for a newer Script Injector and shows what changed.</span></div></label>
       <label class="setting"><input type="checkbox" id="s-extAutoApply"> <div><b>Apply extension updates automatically</b><span class="muted">When the updater has downloaded a new version, the extension reloads into it by itself while no AnyPricer tab is open (otherwise when those tabs are closed or Chrome restarts). Downloading is the Windows updater from the setup: turn it off or on with Start menu → “Script Injector auto-update OFF / ON”, or untick “Update automatically” when you run the setup again.</span></div></label>
-      <div class="row"><span class="muted grow" id="s-ext-mode"></span><label class="row" id="s-extDevTest-wrap" hidden><input type="checkbox" id="s-extDevTest"> Test auto-update in this copy</label><button id="s-ext-test" title="Check GitHub now and apply a newer version that is already on disk">Check &amp; apply now</button></div>
+      <div class="row"><span class="muted grow" id="s-ext-mode"></span><label class="row" id="s-extDevTest-wrap" hidden><input type="checkbox" id="s-extDevTest"> Test auto-update in this copy</label><button id="s-ext-test" data-lockfree title="Check GitHub now and apply a newer version that is already on disk">Check &amp; apply now</button></div>
       <div class="row"><span class="muted" id="s-ext-test-status"></span></div>
-      <div class="row"><button id="s-check-updates">Check all now</button><span class="muted grow" id="s-update-status"></span></div>
+      <div class="row"><button id="s-check-updates" data-lockfree>Check all now</button><span class="muted grow" id="s-update-status"></span></div>
     </div>
 
     <div class="card">

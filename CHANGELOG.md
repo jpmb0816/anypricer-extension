@@ -1,5 +1,8 @@
 # What's new
 
+## 1.0.2 - 2026-11-22
+- Update buttons (scripts and the extension) work even when editing is locked by your admin
+
 ## 1.0.1 - 2026-11-22
 - Removing a script also deletes the data it saved
 - Install dialog: how to add a script library from a link (and a private one with a token)

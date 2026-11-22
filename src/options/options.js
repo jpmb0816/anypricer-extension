@@ -1266,7 +1266,7 @@ async function doInstall() {
   document.querySelector('header.topbar').after(slot);
   setupLock({
     host: slot,
-    lockSel: '#global-toggle, #btn-new, #btn-new-2, #btn-export-all, #btn-export-one, #s-export, #editor input, #editor select, #editor textarea, #btn-check-update, #btn-refresh-requires, #btn-delete, #btn-duplicate, #btn-revert, #btn-save-reinject, #btn-save, #view-settings input, #view-settings select, #view-settings textarea, #view-settings button:not(#s-export), #view-data button:not(#d-refresh), #view-data input, #view-data textarea, #view-data select',
+    lockSel: '#global-toggle, #btn-new, #btn-new-2, #btn-export-all, #btn-export-one, #s-export, #editor input, #editor select, #editor textarea, #btn-refresh-requires, #btn-delete, #btn-duplicate, #btn-revert, #btn-save-reinject, #btn-save, #view-settings input, #view-settings select, #view-settings textarea, #view-settings button:not(#s-export), #view-data button:not(#d-refresh), #view-data input, #view-data textarea, #view-data select',
     toggleSel: '.script-list input',
     importSel: '#btn-install-url, #btn-import, #install-dlg button, #install-dlg textarea, #file-input, #inst-file-input, #inst-folder-input'
   });
