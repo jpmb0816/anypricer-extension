@@ -1,5 +1,8 @@
 # What's new
 
+## 1.0.5 - 2026-11-22
+- Test update (nothing else changed)
+
 ## 1.0.4 - 2026-11-22
 - Popup layout: the admin bar and the footer fit the popup again (update check: the version ↻ link)
 
