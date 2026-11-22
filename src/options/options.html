@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Script Injector — Dashboard</title>
+  <link rel="icon" href="../../icons/icon32.png">
+  <link rel="stylesheet" href="../common.css">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="../../icons/icon48.png" alt="" width="26" height="26">
+      <span>Script Injector</span>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button data-view="scripts" class="active">Scripts</button>
+      <button data-view="logs">Logs <span class="pill err hidden" id="log-count"></span></button>
+      <button data-view="tester">Pattern tester</button>
+      <button data-view="settings">Settings</button>
+      <button data-view="data">Data</button>
+      <button data-view="help">Help</button>
+    </nav>
+    <div class="row top-right">
+      <button class="ghost icon" id="top-data" title="Script data" aria-label="Script data"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></svg></button>
+      <span class="pill" id="engine-pill">…</span>
+      <span id="global-label" class="muted">On</span>
+      <label class="switch lg" title="Turn all injection on/off">
+        <input type="checkbox" id="global-toggle"><span class="slider"></span>
+      </label>
+    </div>
+  </header>
+
+  <div id="banner-slot" class="banner-slot"></div>
+
+  <!-- ============================== SCRIPTS ============================== -->
+  <main id="view-scripts" class="view scripts-view">
+    <aside class="sidebar">
+      <div class="side-actions">
+        <button class="primary grow" id="btn-new" title="New script">＋ New</button>
+        <button id="btn-install-url" title="Install or update scripts from a link, a GitHub folder, files or a folder on this computer (or drop them anywhere here)">Install</button>
+        <button id="btn-import" title="Install one or more .js files from your computer, or import a .json backup">Import</button>
+        <button id="btn-export-all" title="Export all scripts as JSON">Export</button>
+      </div>
+      <div class="row side-filter">
+        <input type="search" id="search" placeholder="Search name, pattern, code…">
+        <select id="filter" title="Filter">
+          <option value="all">All</option>
+          <option value="enabled">Enabled</option>
+          <option value="disabled">Disabled</option>
+          <option value="js">JavaScript</option>
+          <option value="css">CSS</option>
+          <option value="manual">Manual</option>
+          <option value="errors">With errors</option>
+        </select>
+      </div>
+      <ul id="script-list" class="script-list"></ul>
+      <div class="side-foot muted" id="side-foot"></div>
+    </aside>
+
+    <section class="editor-pane">
+      <div id="empty-editor" class="empty-state">
+        <div class="big">{ }</div>
+        <h2>No script selected</h2>
+        <p class="muted">Pick a script on the left or create a new one.</p>
+        <button class="primary" id="btn-new-2">＋ New script</button>
+      </div>
+
+      <form id="editor" class="editor hidden" autocomplete="off">
+        <div class="editor-head">
+          <input type="text" id="f-name" class="name-input" placeholder="Script name" maxlength="200">
+          <span class="pill hidden" id="dirty-pill">● Unsaved</span>
+          <label class="row" title="Enable / disable">
+            <span class="muted">Enabled</span>
+            <span class="switch lg"><input type="checkbox" id="f-enabled"><span class="slider"></span></span>
+          </label>
+        </div>
+        <input type="text" id="f-description" class="desc-input" placeholder="Description (optional)">
+        <div class="upd-row" id="upd-row">
+          <span class="pill" id="f-version" title="Version from the script header (@version). Bump it to publish an update."></span>
+          <input type="url" id="f-sourceUrl" placeholder="Update link (https://…/script.js), optional" spellcheck="false" title="Where updates come from. Set automatically when installed from a link or from @downloadURL in the header.">
+          <label class="row" title="Check this link for a newer @version and install it"><input type="checkbox" id="f-autoUpdate"> Auto-update</label>
+          <button type="button" class="small" id="btn-check-update">Check now</button>
+          <span class="muted" id="upd-status"></span>
+        </div>
+
+        <div class="grid">
+          <div class="field">
+            <label for="f-type">Type</label>
+            <select id="f-type">
+              <option value="js">JavaScript</option>
+              <option value="css">CSS</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-runAt">Run at</label>
+            <select id="f-runAt">
+              <option value="document_start">Document start (before page scripts)</option>
+              <option value="document_end">Document end (DOM ready)</option>
+              <option value="document_idle">Document idle (after load)</option>
+              <option value="manual">Manual only (popup / menu)</option>
+            </select>
+          </div>
+          <div class="field js-only">
+            <label for="f-world">World</label>
+            <select id="f-world">
+              <option value="MAIN">Page (MAIN): access page variables</option>
+              <option value="USER_SCRIPT">Isolated (USER_SCRIPT): hidden from page</option>
+            </select>
+          </div>
+          <div class="field js-only">
+            <label for="f-delay">Delay (ms)</label>
+            <input type="number" id="f-delay" min="0" max="600000" step="100">
+          </div>
+        </div>
+
+        <div class="grid two">
+          <div class="field">
+            <label for="f-include">Include URL patterns <span class="muted">(one per line)</span></label>
+            <textarea id="f-include" rows="3" spellcheck="false" placeholder="*://*.example.com/*&#10;/^https:\/\/app\.site\.com\/(dash|admin)/&#10;https://site.com/*?tab=*"></textarea>
+            <div class="pattern-hints" id="include-hints"></div>
+          </div>
+          <div class="field">
+            <label for="f-exclude">Exclude URL patterns</label>
+            <textarea id="f-exclude" rows="3" spellcheck="false" placeholder="*://example.com/login*"></textarea>
+            <div class="pattern-hints" id="exclude-hints"></div>
+          </div>
+        </div>
+
+        <div class="quick-test row">
+          <span class="muted">Test URL</span>
+          <input type="url" id="f-test-url" class="grow" placeholder="https://… (prefilled with your active tab)">
+          <span id="f-test-result" class="pill">—</span>
+        </div>
+
+        <div class="checks">
+          <label title="Also run inside iframes whose URL matches"><input type="checkbox" id="f-allFrames"> Run in iframes</label>
+          <label title="Re-run when a single-page app changes URL via history.pushState / replaceState"><input type="checkbox" id="f-runOnSpa"> Re-run on SPA navigation</label>
+          <label title="Reload pages where this script ran when it gets disabled, the injector is turned off, or the site is paused"><input type="checkbox" id="f-reloadOnDisable"> Reload page when disabled</label>
+          <label class="js-only" title="Wraps code in an async function: try/catch error reporting, top-level await, `return`, isolated scope"><input type="checkbox" id="f-wrap"> Wrap in async function</label>
+          <label class="js-only" title="Forward console.log/info/warn/error from this script to the Logs tab"><input type="checkbox" id="f-captureConsole"> Capture console</label>
+        </div>
+
+        <details class="field" id="depends-box">
+          <summary>Required scripts <span class="muted" id="depends-count"></span></summary>
+          <div id="f-depends" class="dep-list"></div>
+          <div class="muted" style="margin-top:4px">Scripts this one needs. Turning this script on also turns them on; turning one of them off also turns this one off. They are injected first, and this script never runs without them.</div>
+        </details>
+        <details class="field js-only" id="requires-box">
+          <summary>@require libraries <span class="muted" id="requires-count"></span></summary>
+          <textarea id="f-requires" rows="2" spellcheck="false" placeholder="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></textarea>
+          <div class="row" style="margin-top:6px">
+            <span class="muted grow" id="requires-status">Downloaded once on save, then cached locally and prepended to your code.</span>
+            <button type="button" class="small" id="btn-refresh-requires">Re-download</button>
+          </div>
+        </details>
+
+        <div class="code-box">
+          <div class="code-toolbar">
+            <span class="pill accent" id="mode-pill">JavaScript</span>
+            <span id="syntax-status" class="syntax"></span>
+            <span class="grow"></span>
+            <span class="muted hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> save · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> save &amp; reinject · <kbd>Ctrl</kbd>+<kbd>/</kbd> comment</span>
+          </div>
+          <div class="code-wrap">
+            <div class="gutter" id="gutter"></div>
+            <textarea id="f-code" spellcheck="false" wrap="off" autocapitalize="off" autocomplete="off"></textarea>
+          </div>
+        </div>
+
+        <div class="editor-foot">
+          <div class="muted stats" id="script-stats"></div>
+          <div class="row">
+            <button type="button" class="danger" id="btn-delete">Delete</button>
+            <button type="button" id="btn-duplicate">Duplicate</button>
+            <button type="button" id="btn-export-one">Export</button>
+            <button type="button" id="btn-script-data" title="View / edit the data this script stores">Data</button>
+            <button type="button" id="btn-run-tab" title="Run this script once in the active tab, ignoring URL patterns">▶ Run in active tab</button>
+            <button type="button" id="btn-revert">Revert</button>
+            <button type="button" id="btn-save-reinject" title="Save, then reinject into all open matching tabs">Save &amp; reinject</button>
+            <button type="button" class="primary" id="btn-save">Save</button>
+          </div>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <!-- ============================== LOGS ============================== -->
+  <main id="view-logs" class="view page hidden">
+    <div class="page-head">
+      <h1>Logs</h1>
+      <div class="row">
+        <select id="log-level">
+          <option value="all">All levels</option>
+          <option value="error">Errors</option>
+          <option value="console">Console</option>
+          <option value="warn">Warnings</option>
+        </select>
+        <select id="log-script"><option value="">All scripts</option></select>
+        <input type="search" id="log-search" placeholder="Search message, URL, stack…" style="width:240px">
+        <button id="btn-export-logs">Export</button>
+        <button class="danger" id="btn-clear-logs">Clear</button>
+      </div>
+    </div>
+    <div class="log-list" id="log-list"></div>
+  </main>
+
+  <!-- ============================== TESTER ============================== -->
+  <main id="view-tester" class="view page hidden">
+    <div class="page-head">
+      <h1>Pattern tester</h1>
+    </div>
+    <div class="card">
+      <div class="row">
+        <input type="url" id="t-url" class="grow" placeholder="https://www.example.com/path?query#hash">
+        <button id="t-use-tab">Use active tab</button>
+      </div>
+      <table class="table" id="t-table">
+        <thead><tr><th>Script</th><th>Status</th><th>Matched include</th><th>Excluded by</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Scratchpad</h3>
+      <p class="muted">Try out patterns without saving a script.</p>
+      <div class="grid two">
+        <div class="field"><label>Include</label><textarea id="t-inc" rows="4" spellcheck="false">*://*.example.com/*</textarea></div>
+        <div class="field"><label>Exclude</label><textarea id="t-exc" rows="4" spellcheck="false"></textarea></div>
+      </div>
+      <div id="t-scratch-result" class="scratch-result"></div>
+    </div>
+  </main>
+
+  <!-- ============================== SETTINGS ============================== -->
+  <main id="view-settings" class="view page hidden">
+    <div class="page-head"><h1>Settings</h1></div>
+
+    <div class="card" id="engine-card"></div>
+
+    <div class="card">
+      <h3>General</h3>
+      <label class="setting"><input type="checkbox" id="s-autoReinject"> <div><b>Hot reload</b><span class="muted">Re-run JavaScript in open matching tabs whenever you save a change. CSS always updates live.</span></div></label>
+      <label class="setting"><input type="checkbox" id="s-notify"> <div><b>Desktop notifications on errors</b><span class="muted">Show a system notification when a script throws (at most once every 10s per script).</span></div></label>
+      <label class="setting"><input type="checkbox" id="s-badge"> <div><b>Show badge counts</b><span class="muted">Show the number of scripts that ran (green) or errors (red) on the toolbar icon.</span></div></label>
+      <label class="setting"><span class="num"><select id="s-statusStyle"><option value="auto">Auto</option><option value="pill">Pill</option><option value="off">Off</option></select></span> <div><b>Page loading status</b><span class="muted">Shows which scripts are still loading (and why), then “All ready”. <b>Auto</b>: uses the website's own toast notifications when it has them (e.g. AnyPricer), otherwise a small pill in the bottom-right corner. <b>Pill</b>: always the pill. <b>Off</b>: nothing on the page (the popup still shows it).</span></div></label>
+      <label class="setting"><input type="checkbox" id="s-logConsole"> <div><b>Store captured console output</b><span class="muted">Keep console messages from scripts that have “Capture console” on.</span></div></label>
+      <label class="setting"><span class="num"><input type="number" id="s-maxLogs" min="50" max="10000" step="50"></span> <div><b>Max log entries</b><span class="muted">Older entries are dropped automatically.</span></div></label>
+    </div>
+
+    <div class="card hidden" id="control-card"></div>
+
+    <div class="card">
+      <h3>Private repo tokens</h3>
+      <p class="muted">Tokens you added in Install for private GitHub repos. Each one is only ever sent to its own repo. Your own private scripts use your admin key instead, and the team repo uses team-config.json.</p>
+      <div id="s-repo-tokens"></div>
+    </div>
+
+    <div class="card">
+      <h3>Script updates</h3>
+      <label class="setting"><input type="checkbox" id="s-autoUpdate"> <div><b>Auto-update scripts</b><span class="muted">Scripts installed from a link are checked for a newer <code>@version</code> and updated automatically (your on/off choices are kept). Scripts you edited yourself are not replaced, only marked “update available”.</span></div></label>
+      <label class="setting"><span class="num"><select id="s-updateHours"><option value="1">1 h</option><option value="3">3 h</option><option value="6">6 h</option><option value="12">12 h</option><option value="24">24 h</option></select></span> <div><b>Check every</b><span class="muted">How often to look for updates.</span></div></label>
+      <label class="setting"><span class="num"><select id="s-extCheckHours"><option value="1">1 h</option><option value="3">3 h</option><option value="6">6 h</option><option value="12">12 h</option><option value="24">24 h</option><option value="0">Never</option></select></span> <div><b>Check for extension updates every</b><span class="muted">Looks on GitHub for a newer Script Injector and shows what changed.</span></div></label>
+      <label class="setting"><input type="checkbox" id="s-extAutoApply"> <div><b>Apply extension updates automatically</b><span class="muted">When the updater has downloaded a new version, the extension reloads into it by itself while no AnyPricer tab is open (otherwise when those tabs are closed or Chrome restarts). Downloading is the Windows updater from the setup: turn it off or on with Start menu → “Script Injector auto-update OFF / ON”, or untick “Update automatically” when you run the setup again.</span></div></label>
+      <div class="row"><span class="muted grow" id="s-ext-mode"></span><label class="row" id="s-extDevTest-wrap" hidden><input type="checkbox" id="s-extDevTest"> Test auto-update in this copy</label><button id="s-ext-test" title="Check GitHub now and apply a newer version that is already on disk">Check &amp; apply now</button></div>
+      <div class="row"><span class="muted" id="s-ext-test-status"></span></div>
+      <div class="row"><button id="s-check-updates">Check all now</button><span class="muted grow" id="s-update-status"></span></div>
+    </div>
+
+    <div class="card">
+      <h3>Paused sites</h3>
+      <p class="muted">No scripts run on these hostnames (exact match, one per line). Use the popup to pause the current site quickly.</p>
+      <textarea id="s-hosts" rows="4" spellcheck="false" placeholder="www.example.com"></textarea>
+      <div class="row" style="margin-top:8px"><button class="primary" id="s-save-hosts">Save paused sites</button></div>
+    </div>
+
+    <div class="card">
+      <h3>Data</h3>
+      <div class="row wrap">
+        <button id="s-export">Export everything (scripts + settings)</button>
+        <button id="s-import">Import backup…</button>
+        <button id="s-resync" title="Unregister and re-register all scripts with Chrome">Re-register scripts</button>
+        <button id="s-shortcuts">Keyboard shortcuts…</button>
+        <button class="danger" id="s-reset">Reset everything</button>
+      </div>
+      <p class="muted" id="s-usage"></p>
+    </div>
+  </main>
+
+  <!-- ============================== DATA ============================== -->
+  <main id="view-data" class="view page hidden">
+    <div class="page-head">
+      <h1>Script data</h1>
+      <div class="row">
+        <button id="d-refresh">Refresh</button>
+      </div>
+    </div>
+    <div class="card" id="d-events"></div>
+    <div class="data-layout">
+      <aside class="card data-scripts" id="d-scripts"></aside>
+      <section class="card data-main" id="d-main"></section>
+    </div>
+  </main>
+
+  <!-- ============================== HELP ============================== -->
+  <main id="view-help" class="view page hidden">
+    <div class="page-head"><h1>Help</h1></div>
+    <div class="card prose">
+      <h3>URL patterns</h3>
+      <p>Each line in <b>Include</b> / <b>Exclude</b> is one pattern. A script runs when <i>any</i> include matches and <i>no</i> exclude matches. Matching happens inside the page on every load, so changes apply immediately.</p>
+      <table class="table">
+        <thead><tr><th>Form</th><th>Example</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td>All</td><td><code>*</code> or <code>&lt;all_urls&gt;</code></td><td>Every http(s), file and ftp page</td></tr>
+          <tr><td>Match pattern</td><td><code>*://*.example.com/app/*</code></td><td>Chrome match pattern. <code>*.</code> in host includes the bare domain. Hash is ignored.</td></tr>
+          <tr><td>Regex</td><td><code>/^https:\/\/(www\.)?site\.com\/(a|b)\//i</code></td><td>Wrapped in slashes, optional flags. Tested against the full URL including <code>#hash</code>.</td></tr>
+          <tr><td>Glob</td><td><code>https://site.com/*?id=*</code></td><td><code>*</code> = any characters, <code>?</code> = one character. Whole URL must match.</td></tr>
+          <tr><td>Contains</td><td><code>checkout</code></td><td>Plain text: URL contains it (case-insensitive)</td></tr>
+          <tr><td>Comment</td><td><code># staging only</code></td><td>Ignored</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Inside your script</h3>
+      <ul>
+        <li>With <b>Wrap in async function</b> on (default) you can use top-level <code>await</code> and <code>return</code>, and errors are reported with the right line numbers.</li>
+        <li><code>injector</code> is available: <code>injector.name</code>, <code>injector.trigger</code> (<code>auto</code> · <code>spa</code> · <code>reinject</code> · <code>manual</code>), <code>injector.log(...)</code>, <code>injector.report(error)</code>.</li>
+        <li>Turn wrapping off if you need <code>var</code>/<code>function</code> declarations to become page globals (MAIN world).</li>
+        <li><b>Page (MAIN)</b> world shares <code>window</code> with the page. <b>Isolated</b> world shares the DOM only and is invisible to page scripts.</li>
+        <li>Reinjecting runs the script again, so make scripts idempotent if you reinject often, for example by checking <code>if (document.getElementById('my-el')) return;</code>.</li>
+      </ul>
+
+      <h3>Error reporting</h3>
+      <p>Errors thrown synchronously, in awaited code, in uncaught callbacks and in unhandled promise rejections are captured, together with injection failures such as CSP blocks or registration errors. They appear in the popup, the toolbar badge (red count) and the Logs tab.</p>
+
+      <h3>Engines</h3>
+      <p><b>User Scripts engine</b>: uses Chrome's <code>chrome.userScripts</code> API. It bypasses page Content-Security-Policy and runs at exact timing. Requires <i>Allow User Scripts</i> (Chrome 138+) or <i>Developer mode</i> (Chrome 120–137) on <code>chrome://extensions</code>.</p>
+      <p><b>Limited mode</b>: falls back to inserting a <code>&lt;script&gt;</code> tag. It works on most sites, but strict-CSP pages block it and the failure is reported. Scripts always run in the Page world.</p>
+
+      <h3>Shortcuts</h3>
+      <ul>
+        <li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> open popup</li>
+        <li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> turn injection on/off</li>
+        <li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> reinject into current tab</li>
+        <li>Right-click any page → <b>Script Injector</b> for reinject, pause site, and run any script.</li>
+      </ul>
+    </div>
+  </main>
+
+  <iframe id="sandbox" src="../sandbox/sandbox.html" class="hidden" title="syntax checker"></iframe>
+  <dialog id="install-dlg" class="install-dlg">
+    <div class="dlg-head"><h3>Install scripts</h3><button type="button" class="small" data-close>✕</button></div>
+    <div id="inst-source">
+      <p class="muted">Paste one link per line: a <code>.js</code> script, an <code>index.json</code> that lists several, or a GitHub folder (<code>github.com/owner/repo/tree/main/folder</code>: every <code>.js</code> in it). Scripts already installed (same <code>@id</code>) are updated.</p>
+      <input type="password" id="inst-token" placeholder="Access token: only for a private repo (read-only, that repo only)" autocomplete="off" spellcheck="false" style="width:100%;margin-bottom:6px">
+      <textarea id="inst-urls" rows="3" spellcheck="false" placeholder="https://you.github.io/anypricer-scripts/index.json"></textarea>
+      <div class="row" style="margin-top:8px"><span class="grow"></span><button type="button" class="primary" id="inst-load">Load</button></div>
+      <div class="inst-drop" id="inst-drop">
+        <b>From this computer</b>
+        <span class="muted">Drop .js files or a folder here, or</span>
+        <button type="button" id="inst-files">Choose files…</button>
+        <button type="button" id="inst-folder">Choose folder…</button>
+      </div>
+      <input type="file" id="inst-file-input" class="hidden" accept=".js" multiple>
+      <input type="file" id="inst-folder-input" class="hidden" webkitdirectory multiple>
+    </div>
+    <div id="inst-plan" class="hidden"></div>
+  </dialog>
+
+  <input type="file" id="file-input" class="hidden" accept=".json,.js" multiple>
+
+  <script type="module" src="options.js"></script>
+  <script type="module" src="data-view.js"></script>
+  <script type="module" src="sync-settings.js"></script>
+</body>
+</html>

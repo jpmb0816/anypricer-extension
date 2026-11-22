@@ -1,0 +1,41 @@
+body { width: 380px; max-height: 590px; overflow-y: auto; overflow-x: hidden; }
+.top { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--panel); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 2; }
+.title { font-weight: 700; font-size: 14px; }
+.sub { font-size: 11px; color: var(--muted); }
+#banner-slot:not(:empty) { padding: 10px 12px 0; }
+#banner-slot .banner { font-size: 12px; }
+.card { margin: 10px 12px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.host { font-weight: 600; font-size: 13px; }
+.pause { gap: 6px; font-size: 12px; cursor: pointer; }
+.actions { display: flex; gap: 6px; margin-top: 10px; }
+.actions button { flex: 1; justify-content: center; }
+section { margin-bottom: 4px; }
+.section-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 14px 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.list { list-style: none; margin: 0; padding: 0 12px; }
+.list li { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 8px; }
+.list li:hover { background: var(--panel); }
+.list .name { font-weight: 500; }
+.list .meta { font-size: 11px; color: var(--muted); }
+.list li.disabled .name { color: var(--muted); }
+.list .empty { color: var(--muted); font-size: 12px; padding: 8px; display: block; }
+.list .btns { display: flex; gap: 2px; opacity: 0.55; }
+.list li:hover .btns { opacity: 1; }
+.errors { list-style: none; margin: 0; padding: 0 12px; }
+.errors li { padding: 7px 10px; margin-bottom: 6px; background: var(--err-soft); border-radius: 8px; font-size: 12px; cursor: pointer; }
+.errors .msg { font-family: var(--mono); font-size: 11.5px; word-break: break-word; color: var(--err); }
+.errors .where { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+footer { display: flex; justify-content: space-around; padding: 10px 12px; border-top: 1px solid var(--border); margin-top: 8px; background: var(--panel); position: sticky; bottom: 0; }
+.notice { padding: 14px; color: var(--muted); text-align: center; }
+
+/* source groups + private repos waiting for a token */
+.list li.pgrp { gap: 6px; padding: 8px 8px 2px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.list li.pgrp:hover { background: none; }
+.list li.pgrp .grp-tag { margin-left: 0; }
+#pending-slot:not(:empty) { padding: 8px 12px 0; }
+.pending { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px dashed var(--accent); background: var(--accent-soft); border-radius: var(--radius); font-size: 12px; }
+.pending .sub { font-size: 11px; }
+.actions button { gap: 6px; }
+#ext-update-slot .banner { font-size: 12px; margin: 8px 10px 0; }
+.ext-update details { margin: 4px 0; }
+.ext-update ul { margin: 2px 0 6px; padding-left: 18px; }
+.ext-update button { margin-top: 6px; }

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Script Injector</title>
+  <link rel="stylesheet" href="../common.css">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="top">
+    <img src="../../icons/icon32.png" alt="" width="20" height="20">
+    <div class="grow">
+      <div class="title">Script Injector</div>
+      <div class="sub" id="engine-line">…</div>
+    </div>
+    <button class="ghost icon" id="btn-data" title="Script data dashboard" aria-label="Script data dashboard"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></svg></button>
+    <span class="muted" id="enabled-label">On</span>
+    <label class="switch lg" title="Turn all injection on/off (Alt+Shift+T)">
+      <input type="checkbox" id="global-toggle">
+      <span class="slider"></span>
+    </label>
+  </header>
+
+  <div id="ext-update-slot"></div>
+  <div id="banner-slot"></div>
+  <div id="pending-slot"></div>
+
+  <section class="site card">
+    <div class="row">
+      <div class="grow">
+        <div class="host ellipsis" id="host">—</div>
+        <div class="sub ellipsis" id="site-sub"></div>
+      </div>
+      <label class="row pause" title="Stop all scripts on this hostname">
+        <span class="muted">Pause site</span>
+        <span class="switch"><input type="checkbox" id="pause-toggle"><span class="slider"></span></span>
+      </label>
+    </div>
+    <div class="actions">
+      <button id="btn-reinject" title="Run matching scripts again without reloading (Alt+Shift+R)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg> Reinject</button>
+      <button id="btn-reload" title="Reload the page (Shift-click to bypass cache)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Reload</button>
+      <button id="btn-new" title="Create a script for this site"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg> New for site</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <span>On this page</span>
+      <span class="muted" id="match-count"></span>
+    </div>
+    <ul class="list" id="matching"></ul>
+  </section>
+
+  <section id="manual-section" class="hidden">
+    <div class="section-head"><span>Manual scripts</span></div>
+    <ul class="list" id="manual"></ul>
+  </section>
+
+  <section id="errors-section" class="hidden">
+    <div class="section-head">
+      <span>Errors on this tab</span>
+      <button class="ghost small" id="btn-clear-errors">Clear</button>
+    </div>
+    <ul class="errors" id="errors"></ul>
+  </section>
+
+  <footer>
+    <a href="#" data-open="">Dashboard</a>
+    <a href="#" data-open="view=logs">Logs</a>
+    <a href="#" data-open="view=tester">Pattern tester</a>
+    <a href="#" data-open="view=settings">Settings</a>
+    <a href="#" id="btn-ext-check" title="Check for extension updates"></a>
+  </footer>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

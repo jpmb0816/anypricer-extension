@@ -1,0 +1,10 @@
+# Local settings and keys: never commit
+team-config.json
+*.pem
+# Local-only folders (admin tools, other repos, build output)
+tools/
+supabase/
+scripts/
+my-scripts/
+dist/
+team-config.example.json

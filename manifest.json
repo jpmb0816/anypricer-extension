@@ -1,0 +1,87 @@
+{
+  "manifest_version": 3,
+  "name": "Script Injector",
+  "short_name": "Injector",
+  "version": "1.0.0",
+  "description": "Inject custom JavaScript and CSS into pages using dynamic URL patterns, with on/off controls, reinjection and error reporting.",
+  "minimum_chrome_version": "120",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Script Injector",
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "scripting",
+    "userScripts",
+    "tabs",
+    "webNavigation",
+    "contextMenus",
+    "notifications",
+    "alarms"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/relay.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true
+    }
+  ],
+  "sandbox": {
+    "pages": [
+      "src/sandbox/sandbox.html"
+    ]
+  },
+  "content_security_policy": {
+    "sandbox": "sandbox allow-scripts; script-src 'self' 'unsafe-inline' 'unsafe-eval'; child-src 'self';"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+S"
+      }
+    },
+    "toggle-enabled": {
+      "suggested_key": {
+        "default": "Alt+Shift+T"
+      },
+      "description": "Turn script injection on / off"
+    },
+    "reinject-tab": {
+      "suggested_key": {
+        "default": "Alt+Shift+R"
+      },
+      "description": "Reinject matching scripts into the current tab"
+    },
+    "open-dashboard": {
+      "description": "Open the Script Injector dashboard"
+    }
+  }
+}
