@@ -39,3 +39,8 @@ footer { display: flex; justify-content: space-around; padding: 10px 12px; borde
 .ext-update details { margin: 4px 0; }
 .ext-update ul { margin: 2px 0 6px; padding-left: 18px; }
 .ext-update button { margin-top: 6px; }
+footer a { white-space: nowrap; }
+/* admin bar in the narrow popup: message on its own line, pill + buttons below */
+.si-ctl { gap: 6px 8px; padding: 8px 12px; }
+.si-ctl .ctl-msg { flex: 1 1 100%; }
+.si-ctl button { margin-left: 0; }

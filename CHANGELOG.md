@@ -1,5 +1,8 @@
 # What's new
 
+## 1.0.4 - 2026-11-22
+- Popup layout: the admin bar and the footer fit the popup again (update check: the version ↻ link)
+
 ## 1.0.3 - 2026-11-22
 - Easier to find: "Check for updates" in the popup (next to the version) and "Check for extension update" in Settings → Updates
 
