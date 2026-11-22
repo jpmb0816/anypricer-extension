@@ -161,7 +161,7 @@ var
   Note: String;
 begin
   // team code (the team settings: sync, team scripts, signing key) - pasted once, kept on updates
-  if HasTeamConfig then Note := 'Leave it empty to keep your current team settings.' else Note := 'You get it from your team admin.';
+  if HasTeamConfig then Note := 'Leave it empty to keep your current team code (nothing changes).' else Note := 'You get it from your team admin.';
   TeamPage := CreateInputQueryPage(wpSelectTasks, 'Team code', 'Connect Script Injector to your team',
     'Paste the team code you received (it starts with SI1.). ' + Note);
   TeamPage.Add('Team code:', False);
@@ -267,7 +267,11 @@ begin
   DelTree(ExpandConstant('{tmp}\ext'), True, True, True);
   // marker: this copy was installed by the setup (a copy loaded from a folder has none = developer mode, no auto-apply)
   SaveStringToFile(App + '\install.json', '{"channel":"setup"}', False);
-  if (TeamPage <> nil) and (Trim(TeamPage.Values[0]) <> '') then SaveStringToFile(App + '\team-code.txt', Trim(TeamPage.Values[0]), False);
+  // a new team code replaces the old settings (an old team-config.json would win over it); empty = keep the current ones
+  if (TeamPage <> nil) and (Trim(TeamPage.Values[0]) <> '') then begin
+    DeleteFile(App + '\team-config.json');
+    SaveStringToFile(App + '\team-code.txt', Trim(TeamPage.Values[0]), False);
+  end;
   Ver := ManifestVersion(App);
   if Ver <> '' then
     RegWriteStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{6F3A0C52-9B7E-4C1D-A4D2-5E8B1F0A7C31}_is1', 'DisplayVersion', Ver);

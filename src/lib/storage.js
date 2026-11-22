@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS = {
   updateHours: 6,
   extCheckHours: 6, // extension: check GitHub for a new version (0 = never)
   extDevTest: false, // developer copy: behave like an installed copy (to test auto-update)
+  extSkip: '', // extension: a version the user chose to skip (no banner, no automatic switch)
   extAutoApply: true // extension: reload into a newer version once it is on disk (installed by the scheduled updater)
 };
 

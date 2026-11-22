@@ -19,6 +19,9 @@ export function newer(a, b) { // a > b
   return false;
 }
 
+// the latest setup from GitHub Releases: running it updates this copy in place (same folder, team settings kept)
+export async function setupUrl() { return `https://github.com/${(await cfg()).repo}/releases/latest/download/ScriptInjector-Setup.exe`; }
+
 async function cfg() {
   const f = (await teamFile().catch(() => ({}))) || {};
   const u = f.update || {};

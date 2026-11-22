@@ -217,31 +217,35 @@ load();
   setupLock({ host: slot, lockSel: '#global-toggle, #pause-toggle, #btn-new', toggleSel: '#matching input, #matching .switch input' });
 }
 
-// Extension update banner (state written by the background check)
+// Extension update banner (state written by the background check).
+// The extension can't replace its own files: the setup (or Start menu → "Update Script Injector") does that.
+// Once the new files are on disk, "Apply now" reloads into them. The user can always skip a version.
 async function renderExtUpdate() {
-  const st = await extUpdate.getState().catch(() => null);
+  const [st, disk, set] = await Promise.all([extUpdate.getState().catch(() => null), extUpdate.diskVersion(), store.getSettings()]);
   const slot = $('#ext-update-slot');
-  const disk = await extUpdate.diskVersion();
-  if (disk && extUpdate.newer(disk, extUpdate.current())) {
+  const skip = (v) => h('button', { class: 'small ghost', title: 'Stay on this version: no reminder and no automatic switch for v' + v, onclick: async () => { await store.saveSettings({ extSkip: v }); renderExtUpdate(); } }, 'Skip this version');
+  const changes = (st && st.changes || []).map((c) => h('div', { class: 'ext-ver' }, h('b', {}, 'v' + c.version + (c.title ? ' · ' + c.title : '')), h('ul', {}, c.items.map((i) => h('li', {}, i)))));
+  const what = changes.length ? h('details', {}, h('summary', {}, 'What changed'), changes) : null;
+  if (disk && extUpdate.newer(disk, extUpdate.current()) && set.extSkip !== disk) {
     return slot.replaceChildren(h('div', { class: 'banner info ext-update' }, h('div', { class: 'grow' },
-      h('b', {}, `Update v${disk} downloaded`),
-      h('div', { class: 'muted' }, 'It applies by itself when no AnyPricer tab is open or Chrome restarts.'),
-      h('button', { class: 'small', onclick: () => send('extApplyNow').catch(() => {}) }, 'Apply now (reloads the extension)'))));
+      h('b', {}, `Update v${disk} is ready (you have v${extUpdate.current()})`), what,
+      h('div', { class: 'muted' }, set.extAutoApply !== false ? 'It switches by itself when no AnyPricer tab is open, or when Chrome restarts.' : 'It switches when you press Apply now, or when Chrome restarts.'),
+      h('div', { class: 'row', style: { gap: '6px', marginTop: '6px' } },
+        h('button', { class: 'small primary', onclick: () => send('extApplyNow').catch(() => {}) }, 'Apply now'), skip(disk)))));
   }
-  if (!st || !st.available) return slot.replaceChildren();
-  const changes = (st.changes || []).map((c) => h('div', { class: 'ext-ver' }, h('b', {}, 'v' + c.version + (c.title ? ' · ' + c.title : '')), h('ul', {}, c.items.map((i) => h('li', {}, i)))));
-  slot.replaceChildren(h('div', { class: 'banner info ext-update' },
-    h('div', { class: 'grow' },
-      h('b', {}, `Update available: v${st.latest} (you have v${st.current})`),
-      changes.length ? h('details', {}, h('summary', {}, 'What changed'), changes) : null,
-      h('div', { class: 'muted' }, 'It downloads by itself (every 6 h). To get it now: Start menu → "Update Script Injector", then press Reload.'),
-      h('button', { class: 'small', onclick: () => chrome.runtime.reload() }, 'Reload extension'))));
+  if (!st || !st.latest || !extUpdate.newer(st.latest, extUpdate.current()) || set.extSkip === st.latest) return slot.replaceChildren();
+  slot.replaceChildren(h('div', { class: 'banner info ext-update' }, h('div', { class: 'grow' },
+    h('b', {}, `Update available: v${st.latest} (you have v${st.current || extUpdate.current()})`), what,
+    h('div', { class: 'muted' }, 'Download and run the setup (it updates this copy, keeps your team settings), or Start menu → "Update Script Injector". It also downloads by itself if auto-update is on.'),
+    h('div', { class: 'row', style: { gap: '6px', marginTop: '6px' } },
+      h('button', { class: 'small primary', onclick: async () => chrome.tabs.create({ url: await extUpdate.setupUrl() }) }, 'Download update'), skip(st.latest)))));
 }
 renderExtUpdate();
 $('#btn-ext-check').textContent = 'v' + extUpdate.current() + ' ↻';
 $('#btn-ext-check').addEventListener('click', async (e) => {
   e.preventDefault();
   try {
+    await store.saveSettings({ extSkip: '' }); // checking by hand shows a skipped version again
     const { state } = await send('extUpdateCheck');
     if (state.error) toast(state.error, 'err');
     else if (!extUpdate.newer(state.latest, state.current)) toast('Up to date (v' + state.current + ')');

@@ -1036,6 +1036,7 @@ async function applyDiskUpdate(force = false) {
   const busyTabs = await chrome.tabs.query({ url: ['*://anypricer.com/*', '*://*.anypricer.com/*'] }).catch(() => []);
   const dev = (await extUpdate.isDevCopy()) && !st.extDevTest; // developer copy: only when testing, or on request
   if (!force && dev) return { pending: true, version: disk, dev: true };
+  if (!force && st.extSkip === disk) return { pending: true, version: disk, skipped: true }; // user chose "Skip this version"
   if (force || (st.extAutoApply !== false && !busyTabs.length)) { setTimeout(() => chrome.runtime.reload(), 300); return { pending: true, reloading: true, version: disk }; }
   return { pending: true, version: disk, waiting: busyTabs.length };
 }
