@@ -238,7 +238,7 @@ async function renderExtUpdate() {
       h('button', { class: 'small', onclick: () => chrome.runtime.reload() }, 'Reload extension'))));
 }
 renderExtUpdate();
-$('#btn-ext-check').textContent = 'v' + extUpdate.current();
+$('#btn-ext-check').textContent = 'v' + extUpdate.current() + ' · Check for updates';
 $('#btn-ext-check').addEventListener('click', async (e) => {
   e.preventDefault();
   try {

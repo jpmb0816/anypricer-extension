@@ -1,5 +1,8 @@
 # What's new
 
+## 1.0.3 - 2026-11-22
+- Easier to find: "Check for updates" in the popup (next to the version) and "Check for extension update" in Settings → Updates
+
 ## 1.0.2 - 2026-11-22
 - Update buttons (scripts and the extension) work even when editing is locked by your admin
 
