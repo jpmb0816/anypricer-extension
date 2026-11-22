@@ -212,3 +212,5 @@ body.si-dragging .inst-drop, body.si-dragging .script-list { border-color: var(-
 .script-list li.empty-grp:hover { background: none; }
 .script-list li.grp .grp-x { padding: 0 4px; border-radius: 4px; }
 .script-list li.grp .grp-x:hover { background: var(--err-soft); color: var(--err); }
+.inst-guide { margin: 0 0 10px; padding: 8px 10px 8px 28px; border: 1px solid var(--accent, #3d8fd6); border-radius: 6px; background: rgba(61, 143, 214, .08); font-size: 13px; line-height: 1.5; }
+.inst-guide li + li { margin-top: 4px; }

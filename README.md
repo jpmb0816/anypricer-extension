@@ -21,6 +21,14 @@ That's it. The scripts load from your team automatically.
 - The page scripts start in **Lite mode** (only the essentials). The **Lite: on / off** button at the bottom-left of the
   page switches to the full view. Tools and filters open with the small **⚙ Tools & filters** button.
 
+## Adding scripts from a link
+
+1. Open the dashboard (extension icon → **Dashboard**) and click **Install → From link**.
+2. Paste the link your admin gave you: a script (`.js`), a list (`index.json`) or a GitHub folder.
+3. **Private library?** Ask your admin for its **access token** and paste it in the **Access token** box. It is saved for
+   that library only and used automatically for its updates (Settings → Private repo tokens). Public links need no token.
+4. Click **Load**, tick the scripts you want, then **Install**.
+
 ## Updates
 
 Updates install themselves (the setup checks every 6 hours by default). When a new version is ready, the extension

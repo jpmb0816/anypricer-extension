@@ -350,6 +350,11 @@
   <dialog id="install-dlg" class="install-dlg">
     <div class="dlg-head"><h3>Install scripts</h3><button type="button" class="small" data-close>✕</button></div>
     <div id="inst-source">
+      <ol class="inst-guide">
+        <li><b>Copy the link</b> your admin gave you (a script, an <code>index.json</code> or a GitHub folder) and paste it in the box below.</li>
+        <li><b>Private library?</b> Ask your admin for its <b>access token</b> and paste it in the <i>Access token</i> box. It is saved for that library only and used automatically for its updates (see Settings → Private repo tokens). Public links need no token.</li>
+        <li>Click <b>Load</b>, tick the scripts you want, then <b>Install</b>.</li>
+      </ol>
       <p class="muted">Paste one link per line: a <code>.js</code> script, an <code>index.json</code> that lists several, or a GitHub folder (<code>github.com/owner/repo/tree/main/folder</code>: every <code>.js</code> in it). Scripts already installed (same <code>@id</code>) are updated.</p>
       <input type="password" id="inst-token" placeholder="Access token: only for a private repo (read-only, that repo only)" autocomplete="off" spellcheck="false" style="width:100%;margin-bottom:6px">
       <textarea id="inst-urls" rows="3" spellcheck="false" placeholder="https://you.github.io/anypricer-scripts/index.json"></textarea>
