@@ -897,6 +897,15 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
   if (changes.control) { cache = null; scheduleSync(); updateAllBadges(); scheduleControl().catch(() => {}); }
   if (changes.scripts) scheduleRestore();
+  // a script that is gone (deleted, removed from its library, …) takes its saved data with it
+  if (changes.scripts) {
+    const now = new Set((changes.scripts.newValue || []).map((s) => s.id));
+    const gone = (changes.scripts.oldValue || []).map((s) => s.id).filter((id) => id && !now.has(id));
+    if (gone.length) chrome.storage.local.get(null).then((all) => {
+      const keys = Object.keys(all).filter((k) => gone.some((id) => k.startsWith('sdata:' + id + ':') || k === 'sidx:' + id));
+      if (keys.length) chrome.storage.local.remove(keys);
+    }).catch(() => {});
+  }
   const scriptsChanged = !!changes.scripts;
   const settingsChanged = !!changes.settings;
   const requiresChanged = Object.keys(changes).some((k) => k.startsWith('req:'));
