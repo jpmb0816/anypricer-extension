@@ -36,10 +36,11 @@ async function render() {
     h('p', { class: 'muted' }, 'Script data is saved locally first and uploaded automatically to Supabase every few seconds; changes from coworkers are downloaded every 30 seconds. Works offline: pending changes upload when the connection is back. The team token can add and update data but never delete it.'),
     h('dl', { class: 'sync-dl' },
       h('dt', {}, 'Config from'), h('dd', {}, st.source || (st.configured ? '—' : 'none: add team-config.json to the extension folder or fill the form below')),
-      h('dt', {}, 'Database'), h('dd', {}, st.url || '—'),
+      st.admin ? [h('dt', {}, 'Database'), h('dd', {}, st.url || '—')] : null,
       h('dt', {}, 'This computer'), h('dd', {}, h('span', {}, st.device || '—'), ' ', h('button', { class: 'small', onclick: renameDevice }, 'Rename')),
       h('dt', {}, 'Database size'), h('dd', { id: 'sync-usage' }, '…'),
-      h('dt', {}, 'Size alert'), h('dd', {}, h('label', { title: 'Windows notification when the online database passes 80% (at most once a day). Only on this computer; teammates are not notified.' }, h('input', { type: 'checkbox', id: 'sync-notify', onchange: (e) => chrome.storage.local.set({ 'sync:notifyFull': e.target.checked }) }), ' Notify me on this computer when almost full')),
+      st.admin ? h('dt', {}, 'Size alert') : null, st.admin ? h('dd', {}, h('label', { title: 'Windows notification when the online database passes 80% (at most once a day). Only on this computer; teammates are not notified.' }, h('input', { type: 'checkbox', id: 'sync-notify', onchange: (e) => chrome.storage.local.set({ 'sync:notifyFull': e.target.checked }) }), ' Notify me on this computer when almost full')) : null,
+      (st.tooBig || []).length ? [h('dt', {}, 'Too big to sync'), h('dd', { class: 'sync-err', title: st.tooBig.join('\n') }, `${st.tooBig.length} item${st.tooBig.length === 1 ? '' : 's'} over 2 MB kept on this computer only`)] : null,
       h('dt', {}, 'Waiting to upload'), h('dd', {}, String(st.pending ?? 0)),
       h('dt', {}, 'Last sync'), h('dd', {}, st.lastSync ? `${timeAgo(st.lastSync)}${st.lastPushed ? ` · uploaded ${st.lastPushed}` : ''}${st.lastPulled ? ` · downloaded ${st.lastPulled}` : ''}` : '—'),
       st.error ? [h('dt', {}, 'Last error'), h('dd', { class: 'sync-err' }, st.error)] : null
@@ -47,9 +48,9 @@ async function render() {
     h('div', { class: 'row wrap', style: { margin: '8px 0 12px' } },
       h('button', { class: 'primary', onclick: syncNow, disabled: !st.configured }, 'Sync now'),
       h('button', { onclick: testConn, disabled: !st.configured }, 'Test connection'),
-      h('button', { onclick: checkAll, disabled: !st.configured, title: 'Read every saved item back from the online database and re-upload anything missing or different' }, 'Check all saved online')
+      st.admin && h('button', { onclick: checkAll, disabled: !st.configured, title: 'Read every saved item back from the online database and re-upload anything missing or different' }, 'Check all saved online')
     ),
-    h('details', { open: !st.configured },
+    (st.admin || !st.configured) && h('details', { open: !st.configured },
       h('summary', {}, 'Set up / change (admin)'),
       h('p', { class: 'muted' }, 'Leave empty to use team-config.json from the extension folder (recommended for coworkers: they then need to do nothing). Use the PUBLIC anon key, never the service_role key.'),
       field('sync-url', 'Supabase URL', manual.supabaseUrl, 'url', 'https://xxxx.supabase.co'),

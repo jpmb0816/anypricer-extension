@@ -5,6 +5,7 @@ import * as sync from './sync.js';
 import * as installer from './lib/installer.js';
 import * as control from './lib/control.js';
 import * as extUpdate from './lib/ext-update.js';
+import { isAdminPc } from './lib/admin.js';
 
 /* ======================================================================
  * Engine detection
@@ -832,7 +833,7 @@ const handlers = {
   async syncNow() { return { result: await sync.syncNow() }; },
   async syncTest() { return { result: await sync.testConnection() }; },
   async syncUsage({ fresh } = {}) { return { usage: await sync.dbUsage(!!fresh) }; },
-  async syncCheckAll() { return { result: await sync.checkAll() }; },
+  async syncCheckAll() { if (!(await isAdminPc())) return { result: { state: 'error', error: 'Admin computer only' } }; return { result: await sync.checkAll() }; },
   async syncSaveConfig({ config }) {
     const prev = await sync.getConfig();
     if (config) await chrome.storage.local.set({ syncConfig: config }); else await chrome.storage.local.remove('syncConfig');

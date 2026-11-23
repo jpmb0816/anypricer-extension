@@ -7,6 +7,7 @@
 //   2. team-config.json in the extension folder (so coworkers need no setup)
 //   { "supabaseUrl": "https://xxxx.supabase.co", "anonKey": "...", "teamToken": "...", "enabled": true }
 
+import { isAdminPc } from './lib/admin.js';
 const OUTBOX = 'sync:outbox';   // { storageKey: changedAtMs }
 const CURSOR = 'sync:cursor';   // ISO timestamp of the newest row pulled
 const STATUS = 'sync:status';   // shown in Settings / Data
@@ -97,6 +98,13 @@ export function schedulePush(delay = 3000) {
   pushTimer = setTimeout(() => syncNow({ pullToo: false }).catch(() => {}), delay);
 }
 
+const MAX_VALUE = 2000000; // characters of JSON (the database limit is 2 MB)
+const TOO_BIG = 'sync:tooBig';
+async function noteTooBig(keys) {
+  const m = (await chrome.storage.local.get(TOO_BIG))[TOO_BIG] || {};
+  for (const k of keys) m[k] = Date.now();
+  await chrome.storage.local.set({ [TOO_BIG]: m });
+}
 async function push(c, dev) {
   let pushed = 0;
   for (;;) {
@@ -104,7 +112,10 @@ async function push(c, dev) {
     const keys = Object.keys(ob).slice(0, PUSH_BATCH);
     if (!keys.length) break;
     const vals = await chrome.storage.local.get(keys);
-    const rows = keys.map((k) => {
+    // over 2 MB: the database refuses it, so it stays on this PC only (listed in the status)
+    const big = keys.filter((k) => { try { return k in vals && JSON.stringify(vals[k]).length > MAX_VALUE; } catch (_) { return true; } });
+    if (big.length) await noteTooBig(big);
+    const rows = keys.filter((k) => !big.includes(k)).map((k) => {
       const p = parseKey(k);
       const present = Object.prototype.hasOwnProperty.call(vals, k);
       return {
@@ -117,7 +128,7 @@ async function push(c, dev) {
         device_name: dev.name
       };
     });
-    await api(c, 'script_data?on_conflict=script_id,key', {
+    if (rows.length) await api(c, 'script_data?on_conflict=script_id,key', {
       method: 'POST',
       headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify(rows)
@@ -128,6 +139,7 @@ async function push(c, dev) {
       for (const k of keys) if (cur[k] === ob[k]) delete cur[k];
       await chrome.storage.local.set({ [OUTBOX]: cur });
     });
+    if (rows.length) { const m = (await chrome.storage.local.get(TOO_BIG))[TOO_BIG]; if (m && keys.some((k) => m[k] && !big.includes(k))) { for (const k of keys) if (!big.includes(k)) delete m[k]; await chrome.storage.local.set({ [TOO_BIG]: m }); } }
     pushed += rows.length;
   }
   return pushed;
@@ -198,7 +210,7 @@ export function syncNow({ pullToo = true } = {}) {
         const now = Date.now();
         await outboxSerial(async () => {
           const ob = (await chrome.storage.local.get(OUTBOX))[OUTBOX] || {};
-          for (const k of Object.keys(all)) if (k.startsWith('sdata:') && !ob[k]) ob[k] = (all['sidx:' + parseKey(k).scriptId] || {})[parseKey(k).key]?.updated || now;
+          for (const k of Object.keys(all)) if (parseKey(k) && !ob[k]) ob[k] = (all['sidx:' + parseKey(k).scriptId] || {})[parseKey(k).key]?.updated || now;
           await chrome.storage.local.set({ [OUTBOX]: ob, [INIT]: c.supabaseUrl, [CURSOR]: '1970-01-01T00:00:00Z' });
         });
       }
@@ -305,7 +317,7 @@ export async function queueAll() {
   const now = Date.now();
   await outboxSerial(async () => {
     const ob = (await chrome.storage.local.get(OUTBOX))[OUTBOX] || {};
-    for (const k of Object.keys(all)) if (k.startsWith('sdata:') && !ob[k]) ob[k] = now;
+    for (const k of Object.keys(all)) if (parseKey(k) && !ob[k]) ob[k] = now;
     await chrome.storage.local.set({ [OUTBOX]: ob });
   });
   schedulePush(500);
@@ -314,7 +326,8 @@ export async function queueAll() {
 export async function getStatus() {
   const [st, c, dev] = [(await chrome.storage.local.get(STATUS))[STATUS] || {}, await getConfig(), await getDevice()];
   const pending = Object.keys((await chrome.storage.local.get(OUTBOX))[OUTBOX] || {}).length;
-  return { ...st, pending, configured: !!c, enabled: c ? c.enabled : false, source: c ? c.source : '', url: c ? c.supabaseUrl : '', device: dev.name, deviceId: dev.id };
+  const tooBig = Object.keys((await chrome.storage.local.get(TOO_BIG))[TOO_BIG] || {}).filter((k) => parseKey(k)).map((k) => parseKey(k).scriptId + ' / ' + parseKey(k).key);
+  return { ...st, pending, tooBig, admin: await isAdminPc(), configured: !!c, enabled: c ? c.enabled : false, source: c ? c.source : '', url: c ? c.supabaseUrl : '', device: dev.name, deviceId: dev.id };
 }
 
 /** Size of the online database (needs the db_usage() function in Supabase) → { state, bytes, limit, at }. Cached 10 min. */
@@ -331,7 +344,7 @@ export async function dbUsage(fresh = false) {
   } catch (e) {
     out = { state: /PGRST202|db_usage/.test(e.message) ? 'missing' : 'error', error: e.message.slice(0, 120), at: Date.now() };
   }
-  if (out.state === 'ok' && out.bytes / out.limit >= 0.8 && (await chrome.storage.local.get('sync:notifyFull'))['sync:notifyFull'] === true && !(cached && cached.warned && Date.now() - cached.warned < 86400000)) {
+  if (out.state === 'ok' && out.bytes / out.limit >= 0.8 && (await chrome.storage.local.get('sync:notifyFull'))['sync:notifyFull'] === true && (await isAdminPc()) && !(cached && cached.warned && Date.now() - cached.warned < 86400000)) {
     out.warned = Date.now(); // at most one notification a day
     try {
       chrome.notifications.create('db-full', { type: 'basic', iconUrl: chrome.runtime.getURL('icons/icon128.png'), priority: 2,
