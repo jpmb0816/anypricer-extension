@@ -133,11 +133,24 @@ async function push(c, dev) {
   return pushed;
 }
 
+let hasSyncedAt = null;
+async function serverCol(c) {
+  if (hasSyncedAt === null) {
+    try { await api(c, 'script_data?select=synced_at&limit=1'); hasSyncedAt = true; } catch (_) { hasSyncedAt = false; }
+  }
+  return hasSyncedAt;
+}
+
 async function pull(c, dev) {
-  let pulled = 0;
+  let pulled = 0, first = true;
   for (;;) {
     const cursor = (await chrome.storage.local.get(CURSOR))[CURSOR] || '1970-01-01T00:00:00Z';
-    const res = await api(c, `script_data?select=script_id,key,value,deleted,updated_at,updated_by,device_name&updated_at=gt.${encodeURIComponent(cursor)}&order=updated_at.asc&limit=${PULL_PAGE}`);
+    // synced_at = server time of the upload (database update 2026-11-23): uploads from a PC with another clock,
+    // or uploaded late, are not skipped. Older databases only have updated_at (the uploading PC's clock).
+    const col = (await serverCol(c)) ? 'synced_at' : 'updated_at';
+    const since = col === 'synced_at' && first ? new Date(Date.parse(cursor) - 5000).toISOString() : cursor; // small overlap for uploads committing out of order
+    first = false;
+    const res = await api(c, `script_data?select=script_id,key,value,deleted,updated_at,updated_by,device_name${col === 'synced_at' ? ',synced_at' : ''}&${col}=gt.${encodeURIComponent(since)}&order=${col}.asc&limit=${PULL_PAGE}`);
     const rows = await res.json();
     if (!rows.length) break;
     const ob = (await chrome.storage.local.get(OUTBOX))[OUTBOX] || {};
@@ -148,7 +161,7 @@ async function pull(c, dev) {
       const ix = `sidx:${r.script_id}`;
       const idx = (await chrome.storage.local.get(ix))[ix] || {};
       const remoteT = Date.parse(r.updated_at);
-      if (idx[r.key] && idx[r.key].updated > remoteT) continue; // local copy is newer
+      // no clock comparison: the row is what the database holds now (our own unsent changes are in the outbox)
       fromSync.set(sk, jsonOrDel(r.deleted ? undefined : r.value));
       if (r.deleted) {
         delete idx[r.key];
@@ -162,7 +175,8 @@ async function pull(c, dev) {
       await chrome.storage.local.set({ [ix]: idx });
       pulled++;
     }
-    await chrome.storage.local.set({ [CURSOR]: rows[rows.length - 1].updated_at });
+    const last = rows[rows.length - 1];
+    await chrome.storage.local.set({ [CURSOR]: (hasSyncedAt && last.synced_at) || last.updated_at });
     if (rows.length < PULL_PAGE) break;
   }
   return pulled;
@@ -203,6 +217,43 @@ export function syncNow({ pullToo = true } = {}) {
       return { state: 'error', error: e.message };
     }
   });
+}
+
+/** Queue these storage keys for upload again (with the time now), e.g. a script's "Save online now". */
+export async function queueKeys(storageKeys) {
+  const now = Date.now();
+  await outboxSerial(async () => {
+    const ob = (await chrome.storage.local.get(OUTBOX))[OUTBOX] || {};
+    for (const k of storageKeys) if (parseKey(k)) ob[k] = now;
+    await chrome.storage.local.set({ [OUTBOX]: ob });
+  });
+}
+
+// JSON with sorted object keys (the database stores jsonb, which reorders keys)
+const canon = (v) => JSON.stringify(v, (_, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.keys(x).sort().reduce((o, k) => { o[k] = x[k]; return o; }, {}) : x));
+
+/** Read these keys back from the online database and compare with this PC → { state, checked, missing: [key], differ: [key] } */
+export async function checkOnline(scriptId, keys) {
+  const c = await getConfig();
+  if (!c) return { state: 'off' };
+  if (!c.enabled) return { state: 'paused' };
+  const local = await chrome.storage.local.get(keys.map((k) => `sdata:${scriptId}:${k}`));
+  const online = new Map();
+  try {
+    for (let i = 0; i < keys.length; i += 50) {
+      const part = keys.slice(i, i + 50).map((k) => '"' + String(k).replace(/["\\]/g, '\\$&') + '"').join(',');
+      const res = await api(c, `script_data?select=key,value,deleted&script_id=eq.${encodeURIComponent(scriptId)}&key=in.(${encodeURIComponent(part)})`);
+      for (const r of await res.json()) online.set(r.key, r.deleted ? undefined : r.value);
+    }
+  } catch (e) { return { state: 'error', error: e.message }; }
+  const missing = [], differ = [];
+  for (const k of keys) {
+    const lv = local[`sdata:${scriptId}:${k}`];
+    if (lv === undefined) continue;
+    if (!online.has(k) || online.get(k) === undefined) missing.push(k);
+    else if (canon(online.get(k)) !== canon(lv)) differ.push(k);
+  }
+  return { state: 'ok', checked: keys.length, missing, differ };
 }
 
 /** Checks the URL / keys / team token without changing anything. */

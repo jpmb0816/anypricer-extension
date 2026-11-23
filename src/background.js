@@ -331,16 +331,22 @@ async function handleKv(p, sender) {
   if (!scripts.some((s) => s.id === id)) return { ok: false, error: 'Unknown script' };
   const op = String(p.op || '');
   const key = p.key == null ? '' : String(p.key);
-  if (op !== 'list' && op !== 'getAll' && op !== 'sync' && op !== 'syncnow' && (!key || key.length > 300)) return { ok: false, error: 'Invalid key' };
+  if (op !== 'list' && op !== 'getAll' && op !== 'sync' && op !== 'syncnow' && op !== 'synccheck' && (!key || key.length > 300)) return { ok: false, error: 'Invalid key' };
   if (op === 'sync') { // online database status + how many of this script's changes still wait to upload
     const g = await chrome.storage.local.get(['sync:status', 'sync:outbox']);
     const st = g['sync:status'] || {}, ob = g['sync:outbox'] || {}, pre = SDATA(id, '');
     const mine = Object.keys(ob).filter((k) => k.startsWith(pre));
     return { ok: true, result: { state: st.state || 'off', lastSync: st.lastSync || 0, lastPush: st.lastPush || 0, error: st.error || '', pendingMine: mine.length, pendingKeys: mine.map((k) => k.slice(pre.length)) } };
   }
-  if (op === 'syncnow') { // a script asks to upload now (e.g. "Upload now" after a failed save)
+  if (op === 'syncnow') { // a script asks to upload now (e.g. "Upload now" after a failed save); value = keys to upload again (optional)
+    const ks = Array.isArray(p.value) ? p.value.map(String).filter((k) => k && k.length <= 300).slice(0, 2000) : [];
+    if (ks.length) await sync.queueKeys(ks.map((k) => SDATA(id, k)));
     const r = await sync.syncNow({ pullToo: false }).catch((e) => ({ state: 'error', error: e.message }));
     return { ok: true, result: { state: r.state, error: r.error || '', pending: r.pending || 0 } };
+  }
+  if (op === 'synccheck') { // read keys back from the online database: { state, checked, missing, differ }
+    const ks = Array.isArray(p.value) ? p.value.map(String).filter((k) => k && k.length <= 300).slice(0, 2000) : [];
+    return { ok: true, result: await sync.checkOnline(id, ks) };
   }
   return kvQueue(async () => {
     if (op === 'get') {

@@ -139,7 +139,8 @@ function siRuntime(SI, match) {
     remove: (key) => kv('remove', String(key)),
     list: () => kv('list'),
     syncStatus: () => kv('sync'),
-    syncNow: () => kv('syncnow'), // upload waiting changes now → { state, error, pending } // { state: ok|off|paused|error, lastSync, lastPush, error, pendingMine }
+    syncNow: (keys) => kv('syncnow', '', Array.isArray(keys) ? keys.map(String) : undefined), // keys: upload these again even if unchanged
+    syncCheck: (keys) => kv('synccheck', '', (Array.isArray(keys) ? keys : [keys]).map(String)), // read back from the online database → { state, checked, missing, differ } // upload waiting changes now → { state, error, pending } // { state: ok|off|paused|error, lastSync, lastPush, error, pendingMine }
     getAll: () => kv('getAll'),
     // Called when the data is edited from the dashboard (not for this script's own writes)
     onChange: (fn) => { if (typeof fn === 'function') changeHandlers.push(fn); }
