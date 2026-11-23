@@ -230,6 +230,7 @@ export async function queueKeys(storageKeys) {
 }
 
 // JSON with sorted object keys (the database stores jsonb, which reorders keys)
+const DELETED = Symbol('deleted');
 const canon = (v) => JSON.stringify(v, (_, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.keys(x).sort().reduce((o, k) => { o[k] = x[k]; return o; }, {}) : x));
 
 /** Read these keys back from the online database and compare with this PC → { state, checked, missing: [key], differ: [key] } */
@@ -243,37 +244,42 @@ export async function checkOnline(scriptId, keys) {
     for (let i = 0; i < keys.length; i += 50) {
       const part = keys.slice(i, i + 50).map((k) => '"' + String(k).replace(/["\\]/g, '\\$&') + '"').join(',');
       const res = await api(c, `script_data?select=key,value,deleted&script_id=eq.${encodeURIComponent(scriptId)}&key=in.(${encodeURIComponent(part)})`);
-      for (const r of await res.json()) online.set(r.key, r.deleted ? undefined : r.value);
+      for (const r of await res.json()) online.set(r.key, r.deleted ? DELETED : r.value);
     }
   } catch (e) { return { state: 'error', error: e.message }; }
-  const missing = [], differ = [];
+  const missing = [], differ = [], deleted = [];
   for (const k of keys) {
     const lv = local[`sdata:${scriptId}:${k}`];
     if (lv === undefined) continue;
-    if (!online.has(k) || online.get(k) === undefined) missing.push(k);
+    if (!online.has(k)) missing.push(k);
+    else if (online.get(k) === DELETED) { deleted.push(k); missing.push(k); } // still "missing" for scripts reading it back
     else if (canon(online.get(k)) !== canon(lv)) differ.push(k);
   }
-  return { state: 'ok', checked: keys.length, missing, differ };
+  return { state: 'ok', checked: keys.length, missing, differ, deleted };
 }
 
 /** Compare every synced key on this PC with the online copy; anything missing or different is queued for upload again.
  *  → { state, checked, missing, differ, queued } */
 export async function checkAll() {
+  const first = await syncNow(); // upload pending + download teammates' changes first, so nothing newer online is overwritten
+  if (first && first.state && first.state !== 'ok') return first;
   const byScript = new Map();
   for (const k of Object.keys(await chrome.storage.local.get(null))) {
     const p = parseKey(k);
     if (p) (byScript.get(p.scriptId) || byScript.set(p.scriptId, []).get(p.scriptId)).push(p.key);
   }
-  let checked = 0, missing = 0, differ = 0;
+  let checked = 0, missing = 0, differ = 0, deleted = 0;
   const redo = [];
   for (const [id, keys] of byScript) {
     const r = await checkOnline(id, keys);
     if (r.state !== 'ok') return r;
-    checked += r.checked; missing += r.missing.length; differ += r.differ.length;
-    for (const k of [...r.missing, ...r.differ]) redo.push(`sdata:${id}:${k}`);
+    checked += r.checked; missing += r.missing.length; differ += r.differ.length; deleted += r.deleted.length; missing -= r.deleted.length;
+    // only items that never reached the database are uploaded again: a different online copy is a teammate's change
+    // (it wins) and an item deleted online stays deleted
+    for (const k of r.missing) if (!r.deleted.includes(k)) redo.push(`sdata:${id}:${k}`);
   }
   if (redo.length) { await queueKeys(redo); schedulePush(500); }
-  return { state: 'ok', checked, missing, differ, queued: redo.length };
+  return { state: 'ok', checked, missing, differ, deleted, queued: redo.length };
 }
 
 /** Checks the URL / keys / team token without changing anything. */

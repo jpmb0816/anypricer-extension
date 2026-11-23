@@ -76,8 +76,8 @@ async function checkAll(e) {
   try {
     const r = (await send('syncCheckAll')).result;
     if (r.state !== 'ok') toast(r.error || (r.state === 'paused' ? 'Auto-sync is paused' : 'Online database is not set up'), 'err');
-    else if (!r.queued) toast(`All ${r.checked} saved items are online`, 'ok');
-    else toast(`${r.checked - r.queued} of ${r.checked} online. ${r.missing} missing, ${r.differ} different: uploading them now`, 'err');
+    else if (!r.missing && !r.differ) toast(`All ${r.checked} saved items are online${r.deleted ? ` (${r.deleted} deleted online, kept deleted)` : ''}`, 'ok');
+    else toast(`${r.missing ? r.missing + ' missing online: uploading them now.' : 'Nothing missing online.'}${r.differ ? ` ${r.differ} differ from the online copy: left as they are (use Save online now in the script to send yours).` : ''}`, 'err');
   } catch (err) { toast(err.message, 'err'); }
   render();
 }
