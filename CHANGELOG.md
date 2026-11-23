@@ -1,5 +1,8 @@
 # What's new
 
+## 1.0.11 - 2026-11-24
+- Online database settings (set up, check all saved online) are open to everyone, no admin key needed
+
 ## 1.0.10 - 2026-11-23
 - Cleans up old saved data on each computer automatically: only what the current script versions use is kept (nothing is deleted online)
 - Saved data of scripts removed for 7 days is cleaned up
