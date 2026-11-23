@@ -1,5 +1,11 @@
 # What's new
 
+## 1.0.8 - 2026-11-23
+- Quick update: a ↻ button per script, and "update all" on each library heading (popup and dashboard)
+- Scripts can keep data on this computer only (not uploaded), show online sync status and upload now
+- Scripts can start turned off on first install
+- Faster saving for scripts that store many records
+
 ## 1.0.7 - 2026-11-22
 - Test update: the ⓘ icon at the top of the popup shows who developed it and when this version was released
 - The setup file name now has the version in it (ScriptInjector-Setup-1.0.7.exe)
