@@ -73,7 +73,8 @@ async function api(c, path, opts = {}) {
   return res;
 }
 
-const parseKey = (k) => { const m = /^sdata:([^:]+):(.*)$/.exec(k); return m ? { scriptId: m[1], key: m[2] } : null; };
+// keys starting with "local:" stay on this computer (never uploaded), e.g. big caches a script can reload itself
+const parseKey = (k) => { const m = /^sdata:([^:]+):(?!local:)(.*)$/.exec(k); return m ? { scriptId: m[1], key: m[2] } : null; };
 
 /** Called for every sdata:* storage change. Queues it for upload unless it came from a pull. */
 export async function noteChange(storageKey, newValue) {
