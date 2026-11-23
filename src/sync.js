@@ -77,6 +77,21 @@ async function api(c, path, opts = {}) {
 // keys starting with "local:" stay on this computer (never uploaded), e.g. big caches a script can reload itself
 const parseKey = (k) => { const m = /^sdata:([^:]+):(?!local:)(.*)$/.exec(k); return m ? { scriptId: m[1], key: m[2] } : null; };
 
+/** Before removing keys on this PC only (admin clean-up): nothing is sent online for them. */
+export async function forgetLocal(storageKeys) {
+  for (const k of storageKeys) fromSync.set(k, '(deleted)');
+  await outboxSerial(async () => {
+    const ob = (await chrome.storage.local.get(OUTBOX))[OUTBOX] || {};
+    for (const k of storageKeys) delete ob[k];
+    await chrome.storage.local.set({ [OUTBOX]: ob });
+  });
+}
+/** Download everything from the online database again on the next sync (after a clean-up). */
+export async function redownload() {
+  await chrome.storage.local.set({ [CURSOR]: '1970-01-01T00:00:00Z' });
+  schedulePush(1000);
+}
+
 /** Called for every sdata:* storage change. Queues it for upload unless it came from a pull. */
 export async function noteChange(storageKey, newValue) {
   if (!parseKey(storageKey)) return;

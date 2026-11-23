@@ -1036,6 +1036,39 @@ async function scheduleControl() {
   if (!st || !st.checkedAt || Date.now() - st.checkedAt > want * 60000) control.check().catch(() => {});
 }
 chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'si-control') control.check().catch(() => {}); });
+// Admin clean-up (control.json "clearData", signed by the admin): each entry runs once per computer and removes that
+// script's saved data on this PC only. The online copy stays and is downloaded again.
+//   { "id": "…unique…", "script": "sAnyZoneLadder", "keys": ["zl-ladders:*"] }   (no keys = all of that script's data)
+const CLEARED = 'control:cleared';
+const globRe = (g) => new RegExp('^' + String(g).replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$');
+async function applyClearData() {
+  const st = (await chrome.storage.local.get('control')).control;
+  const list = st && st.cfg && Array.isArray(st.cfg.clearData) ? st.cfg.clearData : [];
+  if (!list.length) return;
+  const done = (await chrome.storage.local.get(CLEARED))[CLEARED] || {};
+  let any = false;
+  for (const e of list) {
+    if (!e || typeof e.id !== 'string' || done[e.id] || !/^[\w-]{1,100}$/.test(e.script || '')) continue;
+    const pre = `sdata:${e.script}:`, pats = (Array.isArray(e.keys) && e.keys.length ? e.keys : ['*']).map(globRe);
+    const all = await chrome.storage.local.get(null);
+    const ks = Object.keys(all).filter((k) => k.startsWith(pre) && pats.some((re) => re.test(k.slice(pre.length))));
+    if (ks.length) {
+      await sync.forgetLocal(ks);
+      await chrome.storage.local.remove(ks);
+      const ix = `sidx:${e.script}`, idx = all[ix] || {};
+      for (const k of ks) delete idx[k.slice(pre.length)];
+      await chrome.storage.local.set({ [ix]: idx });
+    }
+    done[e.id] = { at: Date.now(), removed: ks.length };
+    any = true;
+    addLog({ level: 'info', kind: 'update', message: `Admin clean-up: ${ks.length} saved item(s) of ${e.script} removed on this computer`, time: Date.now() });
+  }
+  if (!any) return;
+  await chrome.storage.local.set({ [CLEARED]: done });
+  await sync.redownload().catch(() => {});
+}
+chrome.storage.onChanged.addListener((c, area) => { if (area === 'local' && c.control) applyClearData().catch(() => {}); });
+applyClearData().catch(() => {});
 // While locked, a published script changed on this computer is put back (debounced; only when something was edited)
 let restoreTimer = null;
 function scheduleRestore() {
