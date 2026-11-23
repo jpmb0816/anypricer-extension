@@ -155,7 +155,7 @@ async function notifyError(name, message, scriptId) {
 
 chrome.notifications.onClicked.addListener((nid) => {
   if (nid.startsWith('err:')) openDashboard('view=logs');
-  if (nid === 'ext-update') openDashboard('view=settings');
+  if (nid === 'ext-update' || nid === 'db-full') openDashboard('view=settings');
   chrome.notifications.clear(nid);
 });
 
@@ -832,6 +832,7 @@ const handlers = {
   async syncNow() { return { result: await sync.syncNow() }; },
   async syncTest() { return { result: await sync.testConnection() }; },
   async syncUsage({ fresh } = {}) { return { usage: await sync.dbUsage(!!fresh) }; },
+  async syncCheckAll() { return { result: await sync.checkAll() }; },
   async syncSaveConfig({ config }) {
     const prev = await sync.getConfig();
     if (config) await chrome.storage.local.set({ syncConfig: config }); else await chrome.storage.local.remove('syncConfig');
@@ -1000,7 +1001,7 @@ checkEngine();
 
 // Online auto-sync: every 30s (the alarm survives service-worker restarts) + shortly after start
 chrome.alarms.create('si-sync', { periodInMinutes: 0.5 });
-chrome.alarms.onAlarm.addListener(async (a) => { if (a.name === 'si-sync' && !(await control.blocked())) sync.syncNow().catch(() => {}); });
+chrome.alarms.onAlarm.addListener(async (a) => { if (a.name === 'si-sync' && !(await control.blocked())) { sync.syncNow().catch(() => {}); sync.dbUsage().catch(() => {}); } });
 setTimeout(async () => { if (!(await control.blocked())) sync.syncNow().catch(() => {}); }, 3000);
 
 // Script updates: scripts installed from a link are checked for a newer @version (default every 6 h, on by default).

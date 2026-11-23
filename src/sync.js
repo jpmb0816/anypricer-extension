@@ -256,6 +256,26 @@ export async function checkOnline(scriptId, keys) {
   return { state: 'ok', checked: keys.length, missing, differ };
 }
 
+/** Compare every synced key on this PC with the online copy; anything missing or different is queued for upload again.
+ *  → { state, checked, missing, differ, queued } */
+export async function checkAll() {
+  const byScript = new Map();
+  for (const k of Object.keys(await chrome.storage.local.get(null))) {
+    const p = parseKey(k);
+    if (p) (byScript.get(p.scriptId) || byScript.set(p.scriptId, []).get(p.scriptId)).push(p.key);
+  }
+  let checked = 0, missing = 0, differ = 0;
+  const redo = [];
+  for (const [id, keys] of byScript) {
+    const r = await checkOnline(id, keys);
+    if (r.state !== 'ok') return r;
+    checked += r.checked; missing += r.missing.length; differ += r.differ.length;
+    for (const k of [...r.missing, ...r.differ]) redo.push(`sdata:${id}:${k}`);
+  }
+  if (redo.length) { await queueKeys(redo); schedulePush(500); }
+  return { state: 'ok', checked, missing, differ, queued: redo.length };
+}
+
 /** Checks the URL / keys / team token without changing anything. */
 export async function testConnection() {
   const c = await getConfig();
@@ -305,6 +325,13 @@ export async function dbUsage(fresh = false) {
   } catch (e) {
     out = { state: /PGRST202|db_usage/.test(e.message) ? 'missing' : 'error', error: e.message.slice(0, 120), at: Date.now() };
   }
+  if (out.state === 'ok' && out.bytes / out.limit >= 0.8 && !(cached && cached.warned && Date.now() - cached.warned < 86400000)) {
+    out.warned = Date.now(); // at most one notification a day
+    try {
+      chrome.notifications.create('db-full', { type: 'basic', iconUrl: chrome.runtime.getURL('icons/icon128.png'), priority: 2,
+        title: 'Online database almost full', message: `${Math.round((out.bytes / out.limit) * 100)}% of ${Math.round(out.limit / 1048576)} MB used. Old comp history is cleaned nightly; click for details.` });
+    } catch {}
+  } else if (cached && cached.warned) out.warned = cached.warned;
   await chrome.storage.local.set({ [K]: out });
   return out;
 }

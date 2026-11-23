@@ -45,7 +45,8 @@ async function render() {
     ),
     h('div', { class: 'row wrap', style: { margin: '8px 0 12px' } },
       h('button', { class: 'primary', onclick: syncNow, disabled: !st.configured }, 'Sync now'),
-      h('button', { onclick: testConn, disabled: !st.configured }, 'Test connection')
+      h('button', { onclick: testConn, disabled: !st.configured }, 'Test connection'),
+      h('button', { onclick: checkAll, disabled: !st.configured, title: 'Read every saved item back from the online database and re-upload anything missing or different' }, 'Check all saved online')
     ),
     h('details', { open: !st.configured },
       h('summary', {}, 'Set up / change (admin)'),
@@ -66,6 +67,16 @@ async function render() {
 async function syncNow() {
   const r = (await send('syncNow')).result;
   toast(r.state === 'ok' ? `Synced: ${r.pushed || 0} up, ${r.pulled || 0} down` : r.error || r.state, r.state === 'ok' ? 'ok' : 'err');
+  render();
+}
+async function checkAll(e) {
+  const b = e && e.currentTarget; if (b) { b.disabled = true; b.textContent = 'Checking…'; }
+  try {
+    const r = (await send('syncCheckAll')).result;
+    if (r.state !== 'ok') toast(r.error || (r.state === 'paused' ? 'Auto-sync is paused' : 'Online database is not set up'), 'err');
+    else if (!r.queued) toast(`All ${r.checked} saved items are online`, 'ok');
+    else toast(`${r.checked - r.queued} of ${r.checked} online. ${r.missing} missing, ${r.differ} different: uploading them now`, 'err');
+  } catch (err) { toast(err.message, 'err'); }
   render();
 }
 async function testConn() {
