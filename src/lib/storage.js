@@ -50,6 +50,7 @@ export function defaultScript(overrides = {}) {
     reloadOnDisable: false,
     requires: [],
     dependsOn: [], // ids of other scripts this one needs (enabled together, injected first)
+    keep: [], // @keep: saved-data keys this version uses (* = any text); other keys are cleaned up on each PC
     version: 0, // whole-number @version (shown as v1, v2 …); 0 = none
     sourceUrl: '', // where updates come from (@downloadURL / the URL it was installed from)
     autoUpdate: true,
@@ -282,7 +283,7 @@ export function hashCode(str) {
  * Parses a Tampermonkey/Greasemonkey style ==UserScript== header. Extra keys understood here:
  * @id (stable id, so updates replace the same script), @version (whole number: 1, 2 … or v1, v2 …),
  * @depends (required script ids), @downloadURL / @updateURL (update source), @reload-on-disable,
- * @run-on-spa, @all-frames, @delay ms, @nowrap, @no-console. s.meta.problems lists what is wrong/missing.
+ * @run-on-spa, @all-frames, @delay ms, @nowrap, @no-console, @keep <key patterns this version uses>. s.meta.problems lists what is wrong/missing.
  */
 export function parseUserScript(code, fileName = '') {
   const meta = /\/\/\s*==UserScript==([\s\S]*?)\/\/\s*==\/UserScript==/.exec(code);
@@ -322,6 +323,7 @@ export function parseUserScript(code, fileName = '') {
         if (/^https?:\/\//i.test(val) && (key === 'downloadURL' || !s.sourceUrl)) s.sourceUrl = val;
         break;
       case 'reload-on-disable': s.reloadOnDisable = true; break;
+      case 'keep': s.keep = [...(s.keep || []), ...val.split(/[\s,]+/).filter(Boolean)].slice(0, 50); break;
       case 'run-on-spa': s.runOnSpa = true; break;
       case 'all-frames': s.allFrames = true; break;
       case 'delay': s.delay = parseInt(val, 10) || 0; break;

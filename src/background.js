@@ -329,7 +329,9 @@ async function handleKv(p, sender) {
   const { token, scripts } = await loadAll();
   if (p.__scriptInjector !== token) return { ok: false, error: 'Invalid token' };
   const id = String(p.scriptId || '');
-  if (!scripts.some((s) => s.id === id)) return { ok: false, error: 'Unknown script' };
+  const me = scripts.find((s) => s.id === id);
+  if (!me) return { ok: false, error: 'Unknown script' };
+  noteRan(id, me.version).catch(() => {});
   const op = String(p.op || '');
   const key = p.key == null ? '' : String(p.key);
   if (op !== 'list' && op !== 'getAll' && op !== 'sync' && op !== 'syncnow' && op !== 'synccheck' && (!key || key.length > 300)) return { ok: false, error: 'Invalid key' };
@@ -1068,6 +1070,53 @@ async function applyClearData() {
   await sync.redownload().catch(() => {});
 }
 chrome.storage.onChanged.addListener((c, area) => { if (area === 'local' && c.control) applyClearData().catch(() => {}); });
+
+// Housekeeping (each PC, daily): only data the installed script versions use is kept. Local only, nothing is deleted online.
+//  - script with @keep patterns: its other keys go, once its current version has run on this PC for an hour (its own
+//    migrations of older formats are done by then)
+//  - script uninstalled for 7 days: its saved data goes
+const HK = 'hk:state', HK_DAY = 86400000;
+const ranSeen = new Map(); // id → version already noted in this service-worker life
+async function noteRan(id, version) {
+  if (ranSeen.get(id) === version) return;
+  ranSeen.set(id, version);
+  const st = (await chrome.storage.local.get(HK))[HK] || { gone: {}, ran: {} };
+  if (!st.ran[id] || st.ran[id].v !== version) { st.ran[id] = { v: version, at: Date.now() }; await chrome.storage.local.set({ [HK]: st }); }
+}
+async function housekeeping() {
+  const scripts = await store.getScripts();
+  const st = (await chrome.storage.local.get(HK))[HK] || { gone: {}, ran: {} };
+  st.gone = st.gone || {}; st.ran = st.ran || {};
+  const all = await chrome.storage.local.get(null), keys = Object.keys(all), now = Date.now();
+  const byId = new Map(scripts.map((s) => [s.id, s]));
+  const ids = new Set(keys.filter((k) => k.startsWith('sdata:') || k.startsWith('sidx:')).map((k) => k.split(':')[1]));
+  const done = [];
+  for (const id of ids) {
+    const s = byId.get(id), pre = `sdata:${id}:`, mine = keys.filter((k) => k.startsWith(pre));
+    let ks = [];
+    if (!s) {
+      st.gone[id] = st.gone[id] || now;
+      if (now - st.gone[id] > 7 * HK_DAY) { ks = mine; if (all['sidx:' + id]) await chrome.storage.local.remove('sidx:' + id); delete st.gone[id]; delete st.ran[id]; }
+    } else {
+      delete st.gone[id];
+      const r = st.ran[id];
+      if (Array.isArray(s.keep) && s.keep.length && r && r.v === s.version && now - r.at > 3600000) {
+        const pats = s.keep.map(globRe);
+        ks = mine.filter((k) => !pats.some((re) => re.test(k.slice(pre.length))));
+      }
+    }
+    if (!ks.length) continue;
+    await sync.forgetLocal(ks);
+    await chrome.storage.local.remove(ks);
+    if (s) { const ix = 'sidx:' + id, idx = all[ix] || {}; for (const k of ks) delete idx[k.slice(pre.length)]; await chrome.storage.local.set({ [ix]: idx }); }
+    done.push(`${s ? s.name : id}: ${ks.length}`);
+  }
+  st.lastRun = now;
+  await chrome.storage.local.set({ [HK]: st });
+  if (done.length) addLog({ level: 'info', kind: 'update', message: 'Cleaned up old saved data on this computer (' + done.join(', ') + ')', time: now });
+}
+chrome.alarms.get('si-hk').then((a) => { if (!a) chrome.alarms.create('si-hk', { delayInMinutes: 5, periodInMinutes: 1440 }); }).catch(() => {});
+chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'si-hk') housekeeping().catch(() => {}); });
 applyClearData().catch(() => {});
 // While locked, a published script changed on this computer is put back (debounced; only when something was edited)
 let restoreTimer = null;

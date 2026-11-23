@@ -128,7 +128,7 @@ export function blockers(row, selectedIds, installedIds = new Set()) {
   return out;
 }
 
-const FROM_HEADER = ['name', 'description', 'code', 'version', 'exclude', 'runAt', 'world', 'dependsOn', 'requires', 'wrap', 'reloadOnDisable', 'runOnSpa', 'allFrames', 'delay', 'captureConsole', 'type'];
+const FROM_HEADER = ['name', 'description', 'code', 'version', 'exclude', 'runAt', 'world', 'dependsOn', 'requires', 'wrap', 'reloadOnDisable', 'keep', 'runOnSpa', 'allFrames', 'delay', 'captureConsole', 'type'];
 
 /** Installed script + new copy → updated script (keeps id, on/off, auto-update choice) */
 export function merge(cur, s) {
