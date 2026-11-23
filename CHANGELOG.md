@@ -1,5 +1,13 @@
 # What's new
 
+## 1.0.9 - 2026-11-23
+- Online sync: saves from every computer now reach the database, even when its clock is off
+- Scripts can upload now and check the online copy (Save online now)
+- Online database size in the popup and Settings
+- Items over 2 MB stay on that computer (Settings shows them) instead of blocking uploads
+- Fixed: the first upload on a newly connected computer could fail
+- Admin tools appear only on the admin computer
+
 ## 1.0.8 - 2026-11-23
 - Quick update: a ↻ button per script, and "update all" on each library heading (popup and dashboard)
 - Scripts can keep data on this computer only (not uploaded), show online sync status and upload now
