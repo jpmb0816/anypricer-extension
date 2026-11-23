@@ -320,11 +320,16 @@ async function handleKv(p, sender) {
   if (!scripts.some((s) => s.id === id)) return { ok: false, error: 'Unknown script' };
   const op = String(p.op || '');
   const key = p.key == null ? '' : String(p.key);
-  if (op !== 'list' && op !== 'getAll' && op !== 'sync' && (!key || key.length > 300)) return { ok: false, error: 'Invalid key' };
+  if (op !== 'list' && op !== 'getAll' && op !== 'sync' && op !== 'syncnow' && (!key || key.length > 300)) return { ok: false, error: 'Invalid key' };
   if (op === 'sync') { // online database status + how many of this script's changes still wait to upload
     const g = await chrome.storage.local.get(['sync:status', 'sync:outbox']);
     const st = g['sync:status'] || {}, ob = g['sync:outbox'] || {}, pre = SDATA(id, '');
-    return { ok: true, result: { state: st.state || 'off', lastSync: st.lastSync || 0, lastPush: st.lastPush || 0, error: st.error || '', pendingMine: Object.keys(ob).filter((k) => k.startsWith(pre)).length } };
+    const mine = Object.keys(ob).filter((k) => k.startsWith(pre));
+    return { ok: true, result: { state: st.state || 'off', lastSync: st.lastSync || 0, lastPush: st.lastPush || 0, error: st.error || '', pendingMine: mine.length, pendingKeys: mine.map((k) => k.slice(pre.length)) } };
+  }
+  if (op === 'syncnow') { // a script asks to upload now (e.g. "Upload now" after a failed save)
+    const r = await sync.syncNow({ pullToo: false }).catch((e) => ({ state: 'error', error: e.message }));
+    return { ok: true, result: { state: r.state, error: r.error || '', pending: r.pending || 0 } };
   }
   return kvQueue(async () => {
     if (op === 'get') {
