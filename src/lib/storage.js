@@ -308,6 +308,7 @@ export function parseUserScript(code, fileName = '') {
         if (/^[A-Za-z0-9]+$/.test(val)) { s.id = val; hasId = true; } else problems.push(`@id "${val}" must be letters/numbers only`);
         break;
       case 'version': rawVersion = val; break;
+      case 'enabled': s.startOff = /^(false|no|off|0)$/i.test(val); break; // @enabled false → installed turned off (first install only)
       case 'description': s.description = val; break;
       case 'match':
       case 'include': include.push(val); break;

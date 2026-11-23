@@ -135,7 +135,8 @@ export function merge(cur, s) {
   const now = Date.now();
   const { meta, ...clean } = s;
   if (!cur) {
-    const n = store.normalizeScript({ ...clean, enabled: true, createdAt: now, updatedAt: now });
+    const { startOff, ...rest } = clean;
+    const n = store.normalizeScript({ ...rest, enabled: !startOff, createdAt: now, updatedAt: now });
     return { ...n, codeHash: store.integrity(n) };
   }
   const next = { ...cur };
