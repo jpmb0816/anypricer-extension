@@ -2,6 +2,7 @@
 // A source is one .js file (with a ==UserScript== header) or an index .json that lists several:
 //   { "scripts": [ { "file": "anypricer-core.js" }, … ] }  or  [ "a.js", "https://…/b.js" ]  (paths relative to the index)
 import * as store from './storage.js';
+import * as control from './control.js'; // circular, used only inside functions
 import { headersFor, toApiUrl, isFolderUrl, ghConfig } from './gh.js';
 
 const MAX_BYTES = 3_000_000;
@@ -209,7 +210,7 @@ export async function checkUpdates({ ids = null, auto = false, overwriteEdits = 
   // Signed managed copy: updates only come through the signed libraries (control check), never straight from a link
   const g = await ghConfig();
   if (g && g.publicKey) {
-    const r = await (await import('./control.js')).check();
+    const r = await control.check();
     const st = await getState();
     st._last = { at: Date.now(), checked: 0, updated: [] };
     return { checked: 0, updated: [...(r.installed || [])].map((name) => ({ name, from: '?', to: 'new' })), state: st, viaControl: r };

@@ -6,6 +6,7 @@ import * as installer from './lib/installer.js';
 import * as control from './lib/control.js';
 import * as extUpdate from './lib/ext-update.js';
 import { isAdminPc } from './lib/admin.js';
+import { teamFile } from './lib/gh.js';
 
 /* ======================================================================
  * Engine detection
@@ -1129,8 +1130,8 @@ function scheduleRestore() {
 }
 scheduleControl().catch(() => {});
 // keep the shared team-config copy fresh for the pages (they never fetch the file themselves when this exists)
-import('./lib/gh.js').then((m) => m.teamFile({ force: true })).catch(() => {});
-setInterval(() => import('./lib/gh.js').then((m) => m.teamFile({ force: true })).catch(() => {}), 4 * 60000);
+teamFile({ force: true }).catch(() => {});
+setInterval(() => teamFile({ force: true }).catch(() => {}), 4 * 60000);
 
 // Extension updates: manifest.json + CHANGELOG.md in the GitHub repo, checked every 6 h and shortly after start
 // GitHub check every extCheckHours (0 = never). A newer version already on disk (scheduled updater) is applied by

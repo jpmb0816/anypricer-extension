@@ -8,6 +8,7 @@
 //   { "supabaseUrl": "https://xxxx.supabase.co", "anonKey": "...", "teamToken": "...", "enabled": true }
 
 import { isAdminPc } from './lib/admin.js';
+import { teamFile } from './lib/gh.js';
 const OUTBOX = 'sync:outbox';   // { storageKey: changedAtMs }
 const CURSOR = 'sync:cursor';   // ISO timestamp of the newest row pulled
 const STATUS = 'sync:status';   // shown in Settings / Data
@@ -30,13 +31,11 @@ const outboxSerial = serial();
 export async function getConfig() {
   const manual = (await chrome.storage.local.get(CFG))[CFG] || null;
   let file = null;
-  try {
-    const r = await fetch(chrome.runtime.getURL('team-config.json'), { cache: 'no-store' });
-    if (r.ok) file = await r.json();
-  } catch (_) { /* no team-config.json */ }
+  try { file = await teamFile(); } catch (_) { /* no team-config.json / team code */ }
+  if (file && !file.supabaseUrl) file = null;
   let c = null;
   if (manual && manual.supabaseUrl) c = { ...(file || {}), ...manual, source: 'Settings' };
-  else if (file && file.supabaseUrl) c = { ...file, source: 'team-config.json' };
+  else if (file && file.supabaseUrl) c = { ...file, source: 'team code' };
   if (!c || !c.supabaseUrl || !c.anonKey || !c.teamToken) return null;
   c.supabaseUrl = String(c.supabaseUrl).trim().replace(/\/+$/, '');
   c.enabled = c.enabled !== false;
