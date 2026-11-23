@@ -320,7 +320,12 @@ async function handleKv(p, sender) {
   if (!scripts.some((s) => s.id === id)) return { ok: false, error: 'Unknown script' };
   const op = String(p.op || '');
   const key = p.key == null ? '' : String(p.key);
-  if (op !== 'list' && op !== 'getAll' && (!key || key.length > 300)) return { ok: false, error: 'Invalid key' };
+  if (op !== 'list' && op !== 'getAll' && op !== 'sync' && (!key || key.length > 300)) return { ok: false, error: 'Invalid key' };
+  if (op === 'sync') { // online database status + how many of this script's changes still wait to upload
+    const g = await chrome.storage.local.get(['sync:status', 'sync:outbox']);
+    const st = g['sync:status'] || {}, ob = g['sync:outbox'] || {}, pre = SDATA(id, '');
+    return { ok: true, result: { state: st.state || 'off', lastSync: st.lastSync || 0, lastPush: st.lastPush || 0, error: st.error || '', pendingMine: Object.keys(ob).filter((k) => k.startsWith(pre)).length } };
+  }
   return kvQueue(async () => {
     if (op === 'get') {
       const k = SDATA(id, key);

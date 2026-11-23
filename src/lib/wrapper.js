@@ -138,6 +138,7 @@ function siRuntime(SI, match) {
     set: (key, value) => kv('set', String(key), value),
     remove: (key) => kv('remove', String(key)),
     list: () => kv('list'),
+    syncStatus: () => kv('sync'), // { state: ok|off|paused|error, lastSync, lastPush, error, pendingMine }
     getAll: () => kv('getAll'),
     // Called when the data is edited from the dashboard (not for this script's own writes)
     onChange: (fn) => { if (typeof fn === 'function') changeHandlers.push(fn); }
