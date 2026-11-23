@@ -1,5 +1,10 @@
 # What's new
 
+## 1.0.10 - 2026-11-23
+- Cleans up old saved data on each computer automatically: only what the current script versions use is kept (nothing is deleted online)
+- Saved data of scripts removed for 7 days is cleaned up
+- Admin can clear one script's saved data on every computer once (the online copy is downloaded again)
+
 ## 1.0.9 - 2026-11-23
 - Online sync: saves from every computer now reach the database, even when its clock is off
 - Scripts can upload now and check the online copy (Save online now)
