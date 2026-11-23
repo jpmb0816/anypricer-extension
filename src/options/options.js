@@ -188,6 +188,10 @@ function renderList() {
           h('span', { class: 'grp-name ellipsis' }, g.label),
           g.tag ? h('span', { class: 'grp-tag' }, g.tag) : null,
           g.kind === 'localdir' && !g.items.length ? h('span', { class: 'grp-x', title: 'Forget this folder', onclick: async (e) => { e.stopPropagation(); const lf = ((await chrome.storage.local.get('localFolders')).localFolders || []).filter((x) => 'local:' + x !== g.key); await chrome.storage.local.set({ localFolders: lf }); } }, '✕') : null,
+          g.items.some((x) => x.sourceUrl) ? h('button', { class: 'ghost icon upd-one grp-upd', title: 'Update all scripts from this library', onclick: async (e) => {
+            e.stopPropagation(); const b = e.currentTarget; b.disabled = true; b.classList.add('spin');
+            try { const r = await installer.updateMany(g.items.filter((x) => x.sourceUrl).map((x) => x.id)); toast(r.msg, r.ok ? 'ok' : 'err'); } catch (err) { toast(err.message, 'err'); }
+            b.disabled = false; b.classList.remove('spin'); } }, icon('refresh')) : null,
           h('span', { class: 'grp-count', title: g.note || '' }, `${on}/${g.items.length}`)),
         // related scripts together: what a script needs comes right before it
         ...(closed ? [] : g.items.length ? store.sortByDeps(g.items).map(rows) : [h('li', { class: 'empty-grp' }, g.note ? g.note + ' · no scripts yet' : 'No scripts')])

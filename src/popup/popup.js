@@ -168,7 +168,11 @@ function groupRows(list, st, injectable) {
   }
   const sorted = [...groups.values()].sort((a, b) => SOURCE_ORDER[a.kind] - SOURCE_ORDER[b.kind] || a.label.localeCompare(b.label));
   return sorted.flatMap((g) => [
-    h('li', { class: 'pgrp', title: g.title }, icon(g.icon), h('span', { class: 'grow ellipsis' }, g.label), g.tag ? h('span', { class: 'grp-tag' }, g.tag) : null),
+    h('li', { class: 'pgrp', title: g.title }, icon(g.icon), h('span', { class: 'grow ellipsis' }, g.label), g.tag ? h('span', { class: 'grp-tag' }, g.tag) : null,
+      g.items.some((x) => x.sourceUrl) ? h('button', { class: 'ghost icon upd-one grp-upd', title: 'Update all scripts from this library', onclick: async (e) => {
+            e.stopPropagation(); const b = e.currentTarget; b.disabled = true; b.classList.add('spin');
+            try { const r = await installer.updateMany(scripts.filter((x) => x.sourceUrl && decorate(sourceGroup(x, scripts), repos.kinds).key === g.key).map((x) => x.id)); toast(r.msg, r.ok ? 'ok' : 'err'); } catch (err) { toast(err.message, 'err'); }
+            b.disabled = false; b.classList.remove('spin'); } }, icon('refresh')) : null),
     ...store.sortByDeps(g.items).map((sc) => scriptRow(sc, st, injectable))
   ]);
 }

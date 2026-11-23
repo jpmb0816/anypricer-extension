@@ -187,6 +187,15 @@ export const isEdited = (s) => !!s.codeHash && store.integrity(s) !== s.codeHash
  * A newer version that needs a script that is not installed gets it from index.json next to the script, if there.
  */
 /** Quick update of one script (popup / dashboard button): returns a short message for a toast */
+/** Update all scripts of one library (popup / dashboard group button): short message for a toast */
+export async function updateMany(ids) {
+  if (!ids.length) return { ok: true, msg: 'No scripts from a link in this library' };
+  const r = await checkUpdates({ ids });
+  const up = r.updated || [];
+  const errs = Object.values(r.state || {}).filter((x) => x && x.error).length;
+  if (up.length) return { ok: true, msg: `Updated ${up.length}: ${up.map((u) => u.name).join(', ')}. Reload the page to run them.` };
+  return errs ? { ok: false, msg: `Could not check ${errs} script(s)` } : { ok: true, msg: `All ${ids.length} up to date` };
+}
 export async function updateOne(id) {
   const r = await checkUpdates({ ids: [id] });
   const u = (r.updated || [])[0];

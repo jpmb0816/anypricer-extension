@@ -156,3 +156,4 @@ input[type='checkbox'] { accent-color: var(--accent-2); }
 .upd-one.has-upd { color: var(--accent); }
 .upd-one.spin svg { animation: si-spin 0.8s linear infinite; }
 @keyframes si-spin { to { transform: rotate(360deg); } }
+.grp-upd { padding: 0 4px; height: 20px; }
