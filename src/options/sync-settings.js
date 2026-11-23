@@ -39,6 +39,7 @@ async function render() {
       h('dt', {}, 'Database'), h('dd', {}, st.url || '—'),
       h('dt', {}, 'This computer'), h('dd', {}, h('span', {}, st.device || '—'), ' ', h('button', { class: 'small', onclick: renameDevice }, 'Rename')),
       h('dt', {}, 'Database size'), h('dd', { id: 'sync-usage' }, '…'),
+      h('dt', {}, 'Size alert'), h('dd', {}, h('label', { title: 'Windows notification when the online database passes 80% (at most once a day). Only on this computer; teammates are not notified.' }, h('input', { type: 'checkbox', id: 'sync-notify', onchange: (e) => chrome.storage.local.set({ 'sync:notifyFull': e.target.checked }) }), ' Notify me on this computer when almost full')),
       h('dt', {}, 'Waiting to upload'), h('dd', {}, String(st.pending ?? 0)),
       h('dt', {}, 'Last sync'), h('dd', {}, st.lastSync ? `${timeAgo(st.lastSync)}${st.lastPushed ? ` · uploaded ${st.lastPushed}` : ''}${st.lastPulled ? ` · downloaded ${st.lastPulled}` : ''}` : '—'),
       st.error ? [h('dt', {}, 'Last error'), h('dd', { class: 'sync-err' }, st.error)] : null
@@ -61,6 +62,7 @@ async function render() {
       )
     )
   );
+  chrome.storage.local.get('sync:notifyFull').then((o) => { const c = box.querySelector('#sync-notify'); if (c) c.checked = o['sync:notifyFull'] === true; });
   if (st.configured) send('syncUsage').then((r) => { const el = box.querySelector('#sync-usage'), u = usageInfo(r.usage); if (el) el.textContent = u ? u.text.replace(/^Online database: |^Database size: /, '') : '—'; if (el && u) el.className = 'usage-' + u.cls; }).catch(() => {});
 }
 

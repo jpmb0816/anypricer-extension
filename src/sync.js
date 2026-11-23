@@ -325,7 +325,7 @@ export async function dbUsage(fresh = false) {
   } catch (e) {
     out = { state: /PGRST202|db_usage/.test(e.message) ? 'missing' : 'error', error: e.message.slice(0, 120), at: Date.now() };
   }
-  if (out.state === 'ok' && out.bytes / out.limit >= 0.8 && !(cached && cached.warned && Date.now() - cached.warned < 86400000)) {
+  if (out.state === 'ok' && out.bytes / out.limit >= 0.8 && (await chrome.storage.local.get('sync:notifyFull'))['sync:notifyFull'] === true && !(cached && cached.warned && Date.now() - cached.warned < 86400000)) {
     out.warned = Date.now(); // at most one notification a day
     try {
       chrome.notifications.create('db-full', { type: 'basic', iconUrl: chrome.runtime.getURL('icons/icon128.png'), priority: 2,
