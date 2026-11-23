@@ -1,5 +1,10 @@
 # What's new
 
+## 1.0.12 - 2026-11-24
+- Fixed: online sync said "not set up" on computers installed with the team code
+- Fixed: online database settings could not be edited on locked computers
+- Fixed: team settings refresh and script update checks in the background
+
 ## 1.0.11 - 2026-11-24
 - Online database settings (set up, check all saved online) are open to everyone, no admin key needed
 
