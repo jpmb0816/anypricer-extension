@@ -835,7 +835,7 @@ const handlers = {
   async syncNow() { return { result: await sync.syncNow() }; },
   async syncTest() { return { result: await sync.testConnection() }; },
   async syncUsage({ fresh } = {}) { return { usage: await sync.dbUsage(!!fresh) }; },
-  async syncCheckAll() { if (!(await isAdminPc())) return { result: { state: 'error', error: 'Admin computer only' } }; return { result: await sync.checkAll() }; },
+  async syncCheckAll() { return { result: await sync.checkAll() }; },
   async syncSaveConfig({ config }) {
     const prev = await sync.getConfig();
     if (config) await chrome.storage.local.set({ syncConfig: config }); else await chrome.storage.local.remove('syncConfig');
