@@ -8,6 +8,7 @@ let UPD_MAP = {}; const UPD = () => UPD_MAP; // update-check state per script (f
 import { sourceGroup, SOURCE_ORDER, repoStatus, decorate } from '../lib/sources.js';
 import * as control from '../lib/control.js';
 import * as extUpdate from '../lib/ext-update.js';
+import { usageInfo } from '../lib/db-usage.js';
 import { BUILD } from '../lib/build-info.js';
 
 let tab = null;
@@ -253,6 +254,9 @@ async function renderExtUpdate() {
       h('button', { class: 'small primary', onclick: async () => chrome.tabs.create({ url: await extUpdate.setupUrl() }) }, 'Download update'), skip(st.latest)))));
 }
 renderExtUpdate();
+// Online database size (all scripts share it)
+send('syncUsage').then((r) => { const u = usageInfo(r.usage), el = $('#db-usage'); if (!u || !el) return; el.textContent = u.text; el.className = 'db-usage ' + u.cls; el.title = 'Free plan limit 500 MB. Old comp data is cleaned up automatically every night.'; }).catch(() => {});
+
 // About (ⓘ): who made it and when this version was released
 { const about = `Script Injector v${extUpdate.current()} · developed by ${BUILD.author} · released ${BUILD.released}`;
   $('#btn-about').title = about; $('#btn-about').addEventListener('click', () => toast(about)); }

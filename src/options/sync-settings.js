@@ -1,5 +1,6 @@
 // Settings → "Online database (auto-sync)" card.
 import { $, h, send, toast, timeAgo } from '../lib/dom.js';
+import { usageInfo } from '../lib/db-usage.js';
 
 let card = null;
 
@@ -37,6 +38,7 @@ async function render() {
       h('dt', {}, 'Config from'), h('dd', {}, st.source || (st.configured ? '—' : 'none: add team-config.json to the extension folder or fill the form below')),
       h('dt', {}, 'Database'), h('dd', {}, st.url || '—'),
       h('dt', {}, 'This computer'), h('dd', {}, h('span', {}, st.device || '—'), ' ', h('button', { class: 'small', onclick: renameDevice }, 'Rename')),
+      h('dt', {}, 'Database size'), h('dd', { id: 'sync-usage' }, '…'),
       h('dt', {}, 'Waiting to upload'), h('dd', {}, String(st.pending ?? 0)),
       h('dt', {}, 'Last sync'), h('dd', {}, st.lastSync ? `${timeAgo(st.lastSync)}${st.lastPushed ? ` · uploaded ${st.lastPushed}` : ''}${st.lastPulled ? ` · downloaded ${st.lastPulled}` : ''}` : '—'),
       st.error ? [h('dt', {}, 'Last error'), h('dd', { class: 'sync-err' }, st.error)] : null
@@ -58,6 +60,7 @@ async function render() {
       )
     )
   );
+  if (st.configured) send('syncUsage').then((r) => { const el = box.querySelector('#sync-usage'), u = usageInfo(r.usage); if (el) el.textContent = u ? u.text.replace(/^Online database: |^Database size: /, '') : '—'; if (el && u) el.className = 'usage-' + u.cls; }).catch(() => {});
 }
 
 async function syncNow() {

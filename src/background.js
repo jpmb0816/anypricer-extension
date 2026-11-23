@@ -831,6 +831,7 @@ const handlers = {
   async syncStatus() { return { status: await sync.getStatus() }; },
   async syncNow() { return { result: await sync.syncNow() }; },
   async syncTest() { return { result: await sync.testConnection() }; },
+  async syncUsage({ fresh } = {}) { return { usage: await sync.dbUsage(!!fresh) }; },
   async syncSaveConfig({ config }) {
     const prev = await sync.getConfig();
     if (config) await chrome.storage.local.set({ syncConfig: config }); else await chrome.storage.local.remove('syncConfig');

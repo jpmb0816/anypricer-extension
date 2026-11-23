@@ -290,3 +290,21 @@ export async function getStatus() {
   const pending = Object.keys((await chrome.storage.local.get(OUTBOX))[OUTBOX] || {}).length;
   return { ...st, pending, configured: !!c, enabled: c ? c.enabled : false, source: c ? c.source : '', url: c ? c.supabaseUrl : '', device: dev.name, deviceId: dev.id };
 }
+
+/** Size of the online database (needs the db_usage() function in Supabase) → { state, bytes, limit, at }. Cached 10 min. */
+export async function dbUsage(fresh = false) {
+  const K = 'sync:usage';
+  const cached = (await chrome.storage.local.get(K))[K];
+  if (!fresh && cached && Date.now() - cached.at < 10 * 60000) return cached;
+  const c = await getConfig();
+  if (!c) return { state: 'off' };
+  let out;
+  try {
+    const r = await (await api(c, 'rpc/db_usage', { method: 'POST', body: '{}' })).json();
+    out = r && Number.isFinite(+r.bytes) ? { state: 'ok', bytes: +r.bytes, limit: +r.limit || 500 * 1024 * 1024, at: Date.now() } : { state: 'error', error: 'No access', at: Date.now() };
+  } catch (e) {
+    out = { state: /PGRST202|db_usage/.test(e.message) ? 'missing' : 'error', error: e.message.slice(0, 120), at: Date.now() };
+  }
+  await chrome.storage.local.set({ [K]: out });
+  return out;
+}

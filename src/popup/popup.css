@@ -44,3 +44,4 @@ footer a { white-space: nowrap; }
 .si-ctl { gap: 6px 8px; padding: 8px 12px; }
 .si-ctl .ctl-msg { flex: 1 1 100%; }
 .si-ctl button { margin-left: 0; }
+.db-usage{font-size:11px;padding:4px 12px;color:var(--muted)}.db-usage.ok{color:var(--muted)}.db-usage.warn{color:#e3a33b;font-weight:600}.db-usage.bad{color:#e5534b;font-weight:600}
