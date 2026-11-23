@@ -308,6 +308,17 @@ async function handlePageEvent(p, sender) {
  * ==================================================================== */
 
 const SDATA = (id, key) => `sdata:${id}:${key}`;
+// per-script key index (sidx:<id>), cached here so a script saving many records does not rewrite the whole index each time
+const idxCache = new Map(), idxTimers = new Map(), idxWriting = new Set();
+async function idxOf(id) { if (!idxCache.has(id)) idxCache.set(id, (await chrome.storage.local.get(SIDX(id)))[SIDX(id)] || {}); return idxCache.get(id); }
+function idxLater(id) {
+  clearTimeout(idxTimers.get(id));
+  idxTimers.set(id, setTimeout(async () => { idxTimers.delete(id); if (!idxCache.has(id)) return; idxWriting.add(id); await chrome.storage.local.set({ [SIDX(id)]: idxCache.get(id) }); idxWriting.delete(id); }, 2000));
+}
+chrome.storage.onChanged.addListener((c, area) => { // index changed elsewhere (dashboard, sync, clean-up) → reload it next time
+  if (area !== 'local') return;
+  for (const k of Object.keys(c)) if (k.startsWith('sidx:')) { const id = k.slice(5); if (!idxWriting.has(id) && !idxTimers.has(id)) idxCache.delete(id); }
+});
 const SIDX = (id) => `sidx:${id}`;
 const recentKvWrites = new Map(); // storage key → JSON of the value a script just wrote (not echoed back as "changed")
 const jsonOf = (v) => { try { return JSON.stringify(v === undefined ? null : v); } catch (_) { return ''; } };
@@ -348,20 +359,23 @@ async function handleKv(p, sender) {
       for (const k of keys) if (data[SDATA(id, k)] !== undefined) out[k] = data[SDATA(id, k)];
       return { ok: true, result: out };
     }
-    const idx = (await chrome.storage.local.get(SIDX(id)))[SIDX(id)] || {};
+    const idx = await idxOf(id);
     if (op === 'set') {
       let size = 0;
       try { size = JSON.stringify(p.value ?? null).length; } catch (_) { return { ok: false, error: 'Value is not serialisable' }; }
+      const isNew = !idx[key];
       idx[key] = { updated: Date.now(), size, tabUrl: sender && sender.tab ? sender.tab.url : '' };
       recentKvWrites.set(SDATA(id, key), jsonOf(p.value ?? null));
-      await chrome.storage.local.set({ [SDATA(id, key)]: p.value ?? null, [SIDX(id)]: idx });
+      // a new key is indexed right away; for an existing key only its size / time change: written a moment later in one go
+      if (isNew) { idxWriting.add(id); await chrome.storage.local.set({ [SDATA(id, key)]: p.value ?? null, [SIDX(id)]: idx }); idxWriting.delete(id); }
+      else { await chrome.storage.local.set({ [SDATA(id, key)]: p.value ?? null }); idxLater(id); }
       return { ok: true, result: true };
     }
     if (op === 'remove') {
       delete idx[key];
       recentKvWrites.set(SDATA(id, key), jsonOf(null));
       await chrome.storage.local.remove(SDATA(id, key));
-      await chrome.storage.local.set({ [SIDX(id)]: idx });
+      idxWriting.add(id); await chrome.storage.local.set({ [SIDX(id)]: idx }); idxWriting.delete(id);
       return { ok: true, result: true };
     }
     return { ok: false, error: 'Unknown operation' };
