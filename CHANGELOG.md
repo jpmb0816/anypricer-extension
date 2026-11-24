@@ -1,5 +1,8 @@
 # What's new
 
+## 1.0.13 - 2026-11-24
+- Fixed: online sync error "Cannot read properties of null (reading 'scriptId')" that blocked all uploads on some computers
+
 ## 1.0.12 - 2026-11-24
 - Fixed: online sync said "not set up" on computers installed with the team code
 - Fixed: online database settings could not be edited on locked computers
