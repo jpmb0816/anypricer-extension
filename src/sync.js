@@ -129,7 +129,8 @@ async function push(c, dev) {
     // over 2 MB: the database refuses it, so it stays on this PC only (listed in the status)
     const big = keys.filter((k) => { try { return k in vals && JSON.stringify(vals[k]).length > MAX_VALUE; } catch (_) { return true; } });
     if (big.length) await noteTooBig(big);
-    const rows = keys.filter((k) => !big.includes(k)).map((k) => {
+    // keys that are not synced (local:… or not script data, e.g. queued by an older version) are just dropped
+    const rows = keys.filter((k) => !big.includes(k) && parseKey(k)).map((k) => {
       const p = parseKey(k);
       const present = Object.prototype.hasOwnProperty.call(vals, k);
       return {
